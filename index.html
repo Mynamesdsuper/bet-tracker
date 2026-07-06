@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bet Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#09090b">
+<script src="vendor/tailwind.js"></script>
+<script src="vendor/lucide.js"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; }
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+
+<div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+
+  <!-- Header -->
+  <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div class="flex items-center gap-3">
+      <div class="bg-indigo-500/10 text-indigo-400 p-2.5 rounded-xl border border-indigo-500/20">
+        <i data-lucide="line-chart" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-50">Bet Tracker</h1>
+        <p class="text-xs text-zinc-500">Le tue sessioni di gioco, sempre sotto controllo</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btnExport" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 bg-zinc-900 hover:bg-zinc-800 border border-white/10 px-3 py-2 rounded-lg transition-colors">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i> Esporta
+      </button>
+      <button id="btnImport" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 bg-zinc-900 hover:bg-zinc-800 border border-white/10 px-3 py-2 rounded-lg transition-colors">
+        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Importa
+      </button>
+      <input type="file" id="fileImport" accept="application/json" class="hidden">
+    </div>
+  </header>
+
+  <!-- KPI Bar -->
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-zinc-500 font-medium">Profitto Totale</span>
+        <i data-lucide="wallet" class="w-4 h-4 text-zinc-600"></i>
+      </div>
+      <p id="kpiProfit" class="text-2xl font-bold">€0.00</p>
+    </div>
+    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-zinc-500 font-medium">ROI</span>
+        <i data-lucide="percent" class="w-4 h-4 text-zinc-600"></i>
+      </div>
+      <p id="kpiRoi" class="text-2xl font-bold text-zinc-100">0.00%</p>
+    </div>
+    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-zinc-500 font-medium">Volume di Gioco</span>
+        <i data-lucide="coins" class="w-4 h-4 text-zinc-600"></i>
+      </div>
+      <p id="kpiVolume" class="text-2xl font-bold text-zinc-100">€0.00</p>
+    </div>
+    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-zinc-500 font-medium">Win Rate</span>
+        <i data-lucide="target" class="w-4 h-4 text-zinc-600"></i>
+      </div>
+      <p id="kpiWinrate" class="text-2xl font-bold text-zinc-100">0.00%</p>
+    </div>
+  </section>
+
+  <!-- Form -->
+  <section class="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
+    <h2 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
+      <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-400"></i> Nuova Sessione
+    </h2>
+    <form id="sessionForm" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div class="col-span-1">
+        <label class="block text-xs text-zinc-500 mb-1">Data</label>
+        <input type="date" id="fDate" required
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      </div>
+      <div class="col-span-1">
+        <label class="block text-xs text-zinc-500 mb-1">Piattaforma</label>
+        <input type="text" id="fPlatform" list="platformList" required placeholder="Bet365..."
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+        <datalist id="platformList"></datalist>
+      </div>
+      <div class="col-span-1">
+        <label class="block text-xs text-zinc-500 mb-1">Tipo di gioco</label>
+        <input type="text" id="fGameType" list="gameTypeList" required placeholder="Sport Betting..."
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+        <datalist id="gameTypeList"></datalist>
+      </div>
+      <div class="col-span-1">
+        <label class="block text-xs text-zinc-500 mb-1">Deposito (€)</label>
+        <input type="number" id="fDeposit" required min="0" step="0.01" placeholder="0.00"
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      </div>
+      <div class="col-span-1">
+        <label class="block text-xs text-zinc-500 mb-1">Cashout (€)</label>
+        <input type="number" id="fCashout" required min="0" step="0.01" placeholder="0.00"
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      </div>
+      <div class="col-span-1">
+        <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi
+        </button>
+      </div>
+      <div class="col-span-2 sm:col-span-3 lg:col-span-5">
+        <label class="block text-xs text-zinc-500 mb-1">Note (opzionale)</label>
+        <input type="text" id="fNotes" placeholder="Osservazioni sulla sessione..."
+          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      </div>
+      <div class="col-span-2 sm:col-span-3 lg:col-span-1 text-right">
+        <span class="text-xs text-zinc-500">Anteprima P/L</span>
+        <p id="previewProfit" class="text-lg font-bold text-zinc-400">€0.00</p>
+      </div>
+    </form>
+  </section>
+
+  <!-- Filters -->
+  <section class="flex flex-wrap items-center gap-3 mb-4">
+    <div class="flex items-center gap-2">
+      <i data-lucide="filter" class="w-4 h-4 text-zinc-500"></i>
+      <select id="filterPlatform" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+        <option value="">Tutte le piattaforme</option>
+      </select>
+    </div>
+    <select id="filterGameType" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      <option value="">Tutti i tipi di gioco</option>
+    </select>
+    <div class="flex items-center gap-2 ml-auto">
+      <i data-lucide="arrow-up-down" class="w-4 h-4 text-zinc-500"></i>
+      <select id="sortOrder" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+        <option value="date-desc">Data (più recente)</option>
+        <option value="date-asc">Data (più vecchia)</option>
+        <option value="profit-desc">Profitto (alto-basso)</option>
+        <option value="profit-asc">Profitto (basso-alto)</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="bg-zinc-900 border border-white/10 rounded-xl shadow-lg shadow-black/20 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
+            <th class="text-left font-medium px-4 py-3">Data</th>
+            <th class="text-left font-medium px-4 py-3">Piattaforma</th>
+            <th class="text-left font-medium px-4 py-3">Tipo</th>
+            <th class="text-right font-medium px-4 py-3">Deposito</th>
+            <th class="text-right font-medium px-4 py-3">Cashout</th>
+            <th class="text-right font-medium px-4 py-3">Profitto</th>
+            <th class="text-left font-medium px-4 py-3">Note</th>
+            <th class="text-center font-medium px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody id="sessionsTableBody" class="divide-y divide-white/5"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="hidden text-center py-12 text-zinc-600">
+      <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2"></i>
+      <p class="text-sm">Nessuna sessione registrata. Aggiungine una per iniziare.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'bettracker_sessions';
+  const PLATFORM_SUGGESTIONS = ['Bet365', 'PokerStars', 'Snai', 'Betway', 'Sisal', 'Eurobet', 'William Hill', 'GGPoker'];
+  const GAMETYPE_SUGGESTIONS = ['Sport Betting', 'Poker', 'Casinò', 'Slot', 'Altro'];
+
+  let sessions = loadSessions();
+
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveSessions() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  }
+
+  function formatCurrency(n) {
+    return '€' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function computeKPIs(list) {
+    const totalDeposit = list.reduce((s, r) => s + r.deposit, 0);
+    const totalProfit = list.reduce((s, r) => s + r.profit, 0);
+    const roi = totalDeposit > 0 ? (totalProfit / totalDeposit) * 100 : 0;
+    const wins = list.filter(r => r.profit > 0).length;
+    const winRate = list.length > 0 ? (wins / list.length) * 100 : 0;
+    return { totalProfit, roi, totalDeposit, winRate };
+  }
+
+  function applyFiltersAndSort(list, { platform, gameType, sort }) {
+    let out = list.filter(r =>
+      (!platform || r.platform === platform) &&
+      (!gameType || r.gameType === gameType)
+    );
+    const cmp = {
+      'date-desc': (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
+      'date-asc': (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
+      'profit-desc': (a, b) => b.profit - a.profit,
+      'profit-asc': (a, b) => a.profit - b.profit,
+    }[sort] || ((a, b) => 0);
+    return out.slice().sort(cmp);
+  }
+
+  function uniqueValues(list, key) {
+    return [...new Set(list.map(r => r[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderKPIs() {
+    const k = computeKPIs(sessions);
+    const profitEl = document.getElementById('kpiProfit');
+    profitEl.textContent = formatCurrency(k.totalProfit);
+    profitEl.className = 'text-2xl font-bold ' + (k.totalProfit > 0 ? 'text-emerald-400' : k.totalProfit < 0 ? 'text-rose-500' : 'text-zinc-100');
+
+    const roiEl = document.getElementById('kpiRoi');
+    roiEl.textContent = k.roi.toFixed(2) + '%';
+    roiEl.className = 'text-2xl font-bold ' + (k.roi > 0 ? 'text-emerald-400' : k.roi < 0 ? 'text-rose-500' : 'text-zinc-100');
+
+    document.getElementById('kpiVolume').textContent = formatCurrency(k.totalDeposit);
+    document.getElementById('kpiWinrate').textContent = k.winRate.toFixed(2) + '%';
+  }
+
+  function renderFilterOptions() {
+    const platformSel = document.getElementById('filterPlatform');
+    const gameTypeSel = document.getElementById('filterGameType');
+    const curPlatform = platformSel.value;
+    const curGameType = gameTypeSel.value;
+
+    platformSel.innerHTML = '<option value="">Tutte le piattaforme</option>' +
+      uniqueValues(sessions, 'platform').map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+    gameTypeSel.innerHTML = '<option value="">Tutti i tipi di gioco</option>' +
+      uniqueValues(sessions, 'gameType').map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+
+    platformSel.value = curPlatform;
+    gameTypeSel.value = curGameType;
+
+    document.getElementById('platformList').innerHTML =
+      [...new Set([...PLATFORM_SUGGESTIONS, ...uniqueValues(sessions, 'platform')])]
+        .map(p => `<option value="${escapeHtml(p)}">`).join('');
+    document.getElementById('gameTypeList').innerHTML =
+      [...new Set([...GAMETYPE_SUGGESTIONS, ...uniqueValues(sessions, 'gameType')])]
+        .map(g => `<option value="${escapeHtml(g)}">`).join('');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderTable() {
+    const filters = {
+      platform: document.getElementById('filterPlatform').value,
+      gameType: document.getElementById('filterGameType').value,
+      sort: document.getElementById('sortOrder').value,
+    };
+    const list = applyFiltersAndSort(sessions, filters);
+    const tbody = document.getElementById('sessionsTableBody');
+    const emptyState = document.getElementById('emptyState');
+
+    if (list.length === 0) {
+      tbody.innerHTML = '';
+      emptyState.classList.remove('hidden');
+    } else {
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = list.map(r => `
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-4 py-3 text-zinc-400">${formatDate(r.date)}</td>
+          <td class="px-4 py-3 text-zinc-200 font-medium">${escapeHtml(r.platform)}</td>
+          <td class="px-4 py-3 text-zinc-400">${escapeHtml(r.gameType)}</td>
+          <td class="px-4 py-3 text-right text-zinc-300">${formatCurrency(r.deposit)}</td>
+          <td class="px-4 py-3 text-right text-zinc-300">${formatCurrency(r.cashout)}</td>
+          <td class="px-4 py-3 text-right font-semibold ${r.profit > 0 ? 'text-emerald-400' : r.profit < 0 ? 'text-rose-500' : 'text-zinc-300'}">${formatCurrency(r.profit)}</td>
+          <td class="px-4 py-3 text-zinc-500 max-w-[200px] truncate" title="${escapeHtml(r.notes || '')}">${escapeHtml(r.notes || '—')}</td>
+          <td class="px-4 py-3 text-center">
+            <button data-id="${r.id}" class="btnDelete text-zinc-600 hover:text-rose-500 transition-colors p-1">
+              <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    lucide.createIcons();
+  }
+
+  function formatDate(iso) {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function renderAll() {
+    renderKPIs();
+    renderFilterOptions();
+    renderTable();
+  }
+
+  document.getElementById('sessionsTableBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btnDelete');
+    if (!btn) return;
+    if (confirm('Eliminare questa sessione?')) {
+      sessions = sessions.filter(r => r.id !== btn.dataset.id);
+      saveSessions();
+      renderAll();
+    }
+  });
+
+  document.getElementById('filterPlatform').addEventListener('change', renderTable);
+  document.getElementById('filterGameType').addEventListener('change', renderTable);
+  document.getElementById('sortOrder').addEventListener('change', renderTable);
+
+  function updatePreview() {
+    const deposit = parseFloat(document.getElementById('fDeposit').value) || 0;
+    const cashout = parseFloat(document.getElementById('fCashout').value) || 0;
+    const profit = cashout - deposit;
+    const el = document.getElementById('previewProfit');
+    el.textContent = formatCurrency(profit);
+    el.className = 'text-lg font-bold ' + (profit > 0 ? 'text-emerald-400' : profit < 0 ? 'text-rose-500' : 'text-zinc-400');
+  }
+  document.getElementById('fDeposit').addEventListener('input', updatePreview);
+  document.getElementById('fCashout').addEventListener('input', updatePreview);
+
+  document.getElementById('sessionForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const deposit = parseFloat(document.getElementById('fDeposit').value);
+    const cashout = parseFloat(document.getElementById('fCashout').value);
+    if (isNaN(deposit) || deposit < 0 || isNaN(cashout) || cashout < 0) return;
+
+    const record = {
+      id: crypto.randomUUID(),
+      date: document.getElementById('fDate').value,
+      platform: document.getElementById('fPlatform').value.trim(),
+      gameType: document.getElementById('fGameType').value.trim(),
+      deposit,
+      cashout,
+      profit: cashout - deposit,
+      notes: document.getElementById('fNotes').value.trim(),
+    };
+    sessions.push(record);
+    saveSessions();
+    renderAll();
+
+    e.target.reset();
+    document.getElementById('fDate').value = todayISO();
+    updatePreview();
+  });
+
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  document.getElementById('btnExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bet-tracker-export-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnImport').addEventListener('click', () => {
+    document.getElementById('fileImport').click();
+  });
+
+  document.getElementById('fileImport').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error('Formato non valido');
+        const valid = data.every(r => r && typeof r.date === 'string' && typeof r.platform === 'string');
+        if (!valid) throw new Error('Formato non valido');
+        if (confirm(`Importare ${data.length} sessioni? Questo sostituirà tutti i dati attuali.`)) {
+          sessions = data.map(r => ({
+            id: r.id || crypto.randomUUID(),
+            date: r.date,
+            platform: r.platform,
+            gameType: r.gameType || '',
+            deposit: Number(r.deposit) || 0,
+            cashout: Number(r.cashout) || 0,
+            profit: Number(r.profit) ?? (Number(r.cashout) || 0) - (Number(r.deposit) || 0),
+            notes: r.notes || '',
+          }));
+          saveSessions();
+          renderAll();
+        }
+      } catch (err) {
+        alert('Errore durante l\'importazione: file JSON non valido.');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('fDate').value = todayISO();
+  renderAll();
+
+  if ('serviceWorker' in navigator && !navigator.userAgent.includes('Electron')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  } else if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+  }
+</script>
+
+</body>
+</html>

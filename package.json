@@ -1,0 +1,17 @@
+{
+  "name": "bet-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bet Tracker - tracciatore di sessioni di scommesse e gioco",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-packager . \"Bet Tracker\" --platform=win32 --arch=x64 --icon=icon.ico --out=release --overwrite --ignore=\"^/(node_modules|scripts|release)($|/)\""
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.2",
+    "electron": "^33.4.11",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.3"
+  }
+}
