@@ -38,6 +38,15 @@ start.bat
 
 avvia un piccolo server locale e apre l'app nel browser predefinito. In questo caso i dati vengono salvati nel `localStorage` del browser (separato da quello dell'app desktop).
 
+### App desktop (macOS)
+
+I bundle `.app` di macOS contengono symlink interni (framework Electron) che Windows non può creare senza privilegi elevati — quindi `npm run dist:mac` **non funziona da Windows**. La build gira invece automaticamente su un runner macOS tramite GitHub Actions (`.github/workflows/build-mac.yml`):
+
+- si attiva da sola ad ogni tag `v*` pushato, allegando lo `.zip` alla relativa Release
+- oppure puoi lanciarla a mano da GitHub → Actions → "Build macOS" → Run workflow
+
+L'app risultante non è firmata/notarizzata: al primo avvio macOS mostrerà un avviso Gatekeeper, sbloccabile con tasto destro → Apri.
+
 ## Struttura del progetto
 
 ```
@@ -46,9 +55,11 @@ main.js          # processo principale Electron
 vendor/          # Tailwind CSS e Lucide Icons bundlati in locale (offline-first)
 manifest.json    # manifest PWA (per l'uso come app installabile da browser)
 sw.js            # service worker PWA (disattivato quando l'app gira in Electron)
-icon.svg/icon.ico
-scripts/make-icon.mjs   # rigenera icon.ico a partire da icon.svg
+icon.svg/icon.ico/icon.icns
+scripts/make-icon.mjs      # rigenera icon.ico (Windows) a partire da icon.svg
+scripts/make-icon-mac.mjs  # rigenera icon.icns (macOS) a partire da icon.svg
 start.bat        # avvio rapido in modalità browser
+.github/workflows/build-mac.yml  # build macOS automatica via GitHub Actions
 docs/PROMPT_ORIGINALE.md  # specifica di partenza del progetto
 ```
 

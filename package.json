@@ -6,12 +6,14 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-packager . \"Bet Tracker\" --platform=win32 --arch=x64 --icon=icon.ico --out=release --overwrite --ignore=\"^/(node_modules|scripts|release)($|/)\""
+    "dist": "electron-packager . \"Bet Tracker\" --platform=win32 --arch=x64 --icon=icon.ico --out=release --overwrite --ignore=\"^/(node_modules|scripts|release)($|/)\"",
+    "dist:mac": "electron-packager . \"Bet Tracker\" --platform=darwin --arch=universal --icon=icon.icns --out=release --overwrite --ignore=\"^/(node_modules|scripts|release)($|/)\""
   },
   "devDependencies": {
     "@electron/packager": "^20.0.2",
     "electron": "^33.4.11",
     "png-to-ico": "^3.0.2",
+    "png2icons": "^2.0.1",
     "sharp": "^0.35.3"
   }
 }
