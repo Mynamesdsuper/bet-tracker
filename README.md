@@ -16,6 +16,7 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 ## Funzionalità
 
 - **Dashboard KPI** in tempo reale: Profitto Totale, ROI %, Volume di Gioco, Win Rate %
+- **Grafici**: andamento del profitto cumulato nel tempo e profitto totale per piattaforma, con tooltip interattivi
 - **Form di inserimento** rapido: data, piattaforma, tipo di gioco, deposito, cashout, note — con anteprima live del profitto/perdita
 - **Tabella sessioni** filtrabile per piattaforma e tipo di gioco, ordinabile per data o profitto
 - **Eliminazione** di singole sessioni con conferma

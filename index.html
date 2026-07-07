@@ -88,6 +88,24 @@
     </div>
   </section>
 
+  <!-- Charts -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+    <div class="lg:col-span-2 bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-zinc-300 mb-0.5 flex items-center gap-2">
+        <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i> Andamento Profitto
+      </h2>
+      <p class="text-xs text-zinc-500 mb-3">Profitto cumulato nel tempo</p>
+      <div id="profitChart" class="relative"></div>
+    </div>
+    <div class="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-zinc-300 mb-0.5 flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i> Per Piattaforma
+      </h2>
+      <p class="text-xs text-zinc-500 mb-3">Profitto totale per piattaforma</p>
+      <div id="platformChart" class="relative"></div>
+    </div>
+  </section>
+
   <!-- Form -->
   <section class="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
     <h2 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
@@ -325,6 +343,172 @@
     renderKPIs();
     renderFilterOptions();
     renderTable();
+    renderProfitChart();
+    renderPlatformChart();
+  }
+
+  function chartEmptyState(container, message) {
+    container.innerHTML = `<div class="h-48 flex items-center justify-center text-xs text-zinc-600">${escapeHtml(message)}</div>`;
+  }
+
+  function renderProfitChart() {
+    const container = document.getElementById('profitChart');
+    const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    if (sorted.length < 2) {
+      chartEmptyState(container, 'Aggiungi almeno 2 sessioni per vedere l’andamento');
+      return;
+    }
+
+    let running = 0;
+    const points = sorted.map((s) => {
+      running += s.profit;
+      return { date: s.date, profit: s.profit, cumulative: running };
+    });
+
+    const W = 560, H = 220, padL = 44, padR = 16, padT = 16, padB = 28;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const values = points.map((p) => p.cumulative);
+    let minV = Math.min(0, ...values), maxV = Math.max(0, ...values);
+    if (minV === maxV) { minV -= 1; maxV += 1; }
+    const pad = (maxV - minV) * 0.1;
+    minV -= pad; maxV += pad;
+
+    const x = (i) => padL + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
+    const y = (v) => padT + plotH - ((v - minV) / (maxV - minV)) * plotH;
+    const zeroY = y(0);
+
+    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.cumulative).toFixed(1)}`).join(' ');
+    const areaPath = `${linePath} L ${x(points.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${x(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
+
+    const last = points[points.length - 1];
+    const lastColor = last.cumulative >= 0 ? '#34d399' : '#f43f5e';
+
+    const hitAreas = points.map((p, i) => `<rect data-i="${i}" x="${(x(i) - (plotW / points.length) / 2).toFixed(1)}" y="0" width="${(plotW / points.length).toFixed(1)}" height="${H}" fill="transparent" />`).join('');
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none" style="max-height:220px">
+        <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W - padR}" y2="${zeroY.toFixed(1)}" stroke="#3f3f46" stroke-width="1" />
+        <path d="${areaPath}" fill="#6366f1" fill-opacity="0.1" stroke="none" />
+        <path d="${linePath}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+        <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last.cumulative).toFixed(1)}" r="4" fill="${lastColor}" stroke="#18181b" stroke-width="2" />
+        <text x="${(x(points.length - 1) - 6).toFixed(1)}" y="${(y(last.cumulative) - 10).toFixed(1)}" text-anchor="end" font-size="11" fill="${lastColor}" font-weight="600">${formatCurrency(last.cumulative)}</text>
+        <text x="${padL}" y="${H - 8}" font-size="10" fill="#71717a">${escapeHtml(points[0].date)}</text>
+        <text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="10" fill="#71717a">${escapeHtml(last.date)}</text>
+        <g id="profitCrosshair" class="pointer-events-none" style="display:none">
+          <line x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="#52525b" stroke-width="1" />
+          <circle r="4" fill="#a5b4fc" stroke="#18181b" stroke-width="2" />
+        </g>
+        ${hitAreas}
+      </svg>
+      <div id="profitTooltip" class="hidden absolute pointer-events-none bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+    `;
+
+    const svg = container.querySelector('svg');
+    const crosshair = container.querySelector('#profitCrosshair');
+    const tooltip = container.querySelector('#profitTooltip');
+
+    svg.querySelectorAll('rect[data-i]').forEach((rect) => {
+      rect.addEventListener('pointermove', () => {
+        const i = Number(rect.dataset.i);
+        const p = points[i];
+        const px = x(i), py = y(p.cumulative);
+        crosshair.style.display = '';
+        crosshair.querySelector('line').setAttribute('x1', px.toFixed(1));
+        crosshair.querySelector('line').setAttribute('x2', px.toFixed(1));
+        crosshair.querySelector('circle').setAttribute('cx', px.toFixed(1));
+        crosshair.querySelector('circle').setAttribute('cy', py.toFixed(1));
+
+        const pctLeft = (px / W) * 100;
+        tooltip.style.left = `${pctLeft}%`;
+        tooltip.style.top = '0px';
+        tooltip.style.transform = pctLeft > 70 ? 'translate(-100%, 0)' : 'translate(0, 0)';
+        tooltip.innerHTML = `
+          <div class="text-zinc-400">${escapeHtml(p.date)}</div>
+          <div class="font-semibold ${p.cumulative >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${formatCurrency(p.cumulative)} <span class="text-zinc-500 font-normal">cumulato</span></div>
+          <div class="${p.profit >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${p.profit >= 0 ? '+' : ''}${formatCurrency(p.profit)} <span class="text-zinc-500">questa sessione</span></div>
+        `;
+        tooltip.classList.remove('hidden');
+      });
+      rect.addEventListener('pointerleave', () => {
+        crosshair.style.display = 'none';
+        tooltip.classList.add('hidden');
+      });
+    });
+  }
+
+  function renderPlatformChart() {
+    const container = document.getElementById('platformChart');
+    if (sessions.length === 0) {
+      chartEmptyState(container, 'Nessuna sessione ancora registrata');
+      return;
+    }
+
+    const byPlatform = new Map();
+    for (const s of sessions) {
+      const cur = byPlatform.get(s.platform) || { profit: 0, count: 0 };
+      cur.profit += s.profit;
+      cur.count += 1;
+      byPlatform.set(s.platform, cur);
+    }
+    const rows = [...byPlatform.entries()]
+      .map(([platform, v]) => ({ platform, ...v }))
+      .sort((a, b) => b.profit - a.profit);
+
+    const W = 280, rowH = 34, padL = 8, padR = 8, padT = 4, labelGutter = 46;
+    const H = padT + rows.length * rowH;
+    const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.profit)));
+    const barMax = (W / 2) - Math.max(padL, padR) - labelGutter;
+
+    const barsHtml = rows.map((r, i) => {
+      const cyTop = padT + i * rowH;
+      const barW = (Math.abs(r.profit) / maxAbs) * barMax;
+      const color = r.profit >= 0 ? '#34d399' : '#f43f5e';
+      const barX = r.profit >= 0 ? W / 2 : W / 2 - barW;
+      const valueText = formatCurrency(r.profit);
+      const fitsOutside = labelGutter - 6 >= valueText.length * 5.4;
+      const labelX = r.profit >= 0 ? W / 2 + barW + 6 : W / 2 - barW - 6;
+      const labelAnchor = r.profit >= 0 ? 'start' : 'end';
+      const label = fitsOutside
+        ? `<text x="${labelX.toFixed(1)}" y="${(cyTop + 25).toFixed(1)}" text-anchor="${labelAnchor}" font-size="9" fill="${color}" font-weight="600">${valueText}</text>`
+        : '';
+      return `
+        <g data-i="${i}" class="platform-row" style="cursor:pointer">
+          <text x="${W / 2}" y="${cyTop + 13}" text-anchor="middle" font-size="10" fill="#a1a1aa">${escapeHtml(r.platform)}</text>
+          <rect x="${barX.toFixed(1)}" y="${(cyTop + 16).toFixed(1)}" width="${Math.max(barW, 2).toFixed(1)}" height="10" rx="3" fill="${color}" />
+          ${label}
+          <rect x="0" y="${cyTop}" width="${W}" height="${rowH}" fill="transparent" />
+        </g>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none">
+        <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#3f3f46" stroke-width="1" />
+        ${barsHtml}
+      </svg>
+      <div id="platformTooltip" class="hidden absolute pointer-events-none bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+    `;
+
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('#platformTooltip');
+    svg.querySelectorAll('.platform-row').forEach((g) => {
+      g.addEventListener('pointermove', (e) => {
+        const i = Number(g.dataset.i);
+        const r = rows[i];
+        const rect = container.getBoundingClientRect();
+        const relX = e.clientX - rect.left;
+        const relY = (i / rows.length) * container.clientHeight;
+        tooltip.style.left = `${Math.min(relX + 10, rect.width - 140)}px`;
+        tooltip.style.top = `${relY}px`;
+        tooltip.innerHTML = `
+          <div class="text-zinc-400">${escapeHtml(r.platform)}</div>
+          <div class="font-semibold ${r.profit >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${formatCurrency(r.profit)}</div>
+          <div class="text-zinc-500">${r.count} session${r.count === 1 ? 'e' : 'i'}</div>
+        `;
+        tooltip.classList.remove('hidden');
+      });
+      g.addEventListener('pointerleave', () => tooltip.classList.add('hidden'));
+    });
   }
 
   document.getElementById('sessionsTableBody').addEventListener('click', (e) => {
