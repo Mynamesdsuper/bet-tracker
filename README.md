@@ -1,6 +1,6 @@
 # Bet Tracker
 
-![Build macOS](https://github.com/Mynamesdsuper/bet-tracker/actions/workflows/build-mac.yml/badge.svg)
+![Release](https://github.com/Mynamesdsuper/bet-tracker/actions/workflows/release.yml/badge.svg)
 
 App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, storico sessioni filtrabile, tutto salvato in locale. Disponibile come app desktop standalone (Windows e macOS) o come pagina web.
 
@@ -51,12 +51,24 @@ avvia un piccolo server locale e apre l'app nel browser predefinito. In questo c
 
 ### App desktop (macOS)
 
-I bundle `.app` di macOS contengono symlink interni (framework Electron) che Windows non può creare senza privilegi elevati — quindi `npm run dist:mac` **non funziona da Windows**. La build gira invece automaticamente su un runner macOS tramite GitHub Actions (`.github/workflows/build-mac.yml`):
-
-- si attiva da sola ad ogni tag `v*` pushato, allegando lo `.zip` alla relativa Release
-- oppure puoi lanciarla a mano da GitHub → Actions → "Build macOS" → Run workflow
+I bundle `.app` di macOS contengono symlink interni (framework Electron) che Windows non può creare senza privilegi elevati — quindi `npm run dist:mac` **non funziona da Windows** in locale. La build va fatta su un runner macOS reale, cosa che il workflow di release gestisce automaticamente (vedi sotto).
 
 L'app risultante non è firmata/notarizzata: al primo avvio macOS mostrerà un avviso Gatekeeper, sbloccabile con tasto destro → Apri.
+
+## Come pubblicare una nuova release
+
+Tutta la pipeline di release (bump versione, build Windows, build macOS, pubblicazione) è automatizzata in `.github/workflows/release.yml`. Per pubblicare una nuova versione, senza bisogno di compilare nulla in locale:
+
+```
+gh workflow run release.yml -f version=1.1.0
+```
+
+(oppure da GitHub → Actions → "Release" → Run workflow, inserendo il numero di versione senza `v`)
+
+Il workflow:
+1. aggiorna `package.json`/`package-lock.json` alla nuova versione, crea il tag `vX.Y.Z` e lo pusha
+2. builda in parallelo il pacchetto Windows (`windows-latest`) e quello macOS (`macos-latest`)
+3. pubblica due release separate: `vX.Y.Z` (Windows) e `vX.Y.Z-mac` (macOS)
 
 ## Struttura del progetto
 
@@ -70,7 +82,7 @@ icon.svg/icon.ico/icon.icns
 scripts/make-icon.mjs      # rigenera icon.ico (Windows) a partire da icon.svg
 scripts/make-icon-mac.mjs  # rigenera icon.icns (macOS) a partire da icon.svg
 start.bat        # avvio rapido in modalità browser
-.github/workflows/build-mac.yml  # build macOS automatica via GitHub Actions
+.github/workflows/release.yml  # pipeline di release automatica (versioning + build Windows/macOS via CI)
 docs/PROMPT_ORIGINALE.md  # specifica di partenza del progetto
 ```
 

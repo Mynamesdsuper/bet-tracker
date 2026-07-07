@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Nuova versione (es. 1.1.0, senza "v")'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Bump version
+        run: npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Commit and tag
+        id: tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: release v${{ github.event.inputs.version }}"
+          git tag "v${{ github.event.inputs.version }}"
+          git push origin master
+          git push origin "v${{ github.event.inputs.version }}"
+          echo "tag=v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run dist
+
+      - name: Zip build
+        shell: pwsh
+        run: Compress-Archive -Path "release/Bet Tracker-win32-x64" -DestinationPath "release/BetTracker-win32-x64-${{ needs.prepare.outputs.tag }}.zip"
+
+      - name: Publish Windows Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Bet Tracker ${{ needs.prepare.outputs.tag }} (Windows)
+          files: release/BetTracker-win32-x64-${{ needs.prepare.outputs.tag }}.zip
+
+  build-mac:
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run dist:mac
+
+      - name: Zip build
+        run: |
+          cd release
+          zip -r -y "BetTracker-darwin-universal.zip" "Bet Tracker-darwin-universal"
+
+      - name: Publish macOS Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}-mac
+          name: Bet Tracker ${{ needs.prepare.outputs.tag }} (macOS)
+          files: release/BetTracker-darwin-universal.zip
