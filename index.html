@@ -237,9 +237,14 @@
 
   <!-- Form -->
   <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
-    <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-4 flex items-center gap-2">
-      <i data-lucide="plus-circle" class="w-4 h-4 text-[var(--accent-ink)]"></i> Nuova Sessione
-    </h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-4 h-4 text-[var(--accent-ink)]"></i> Nuova Sessione
+      </h2>
+      <button id="btnSmartAdd" type="button" class="flex items-center gap-1.5 text-xs text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-2.5 py-1.5 rounded-lg transition-colors">
+        <i data-lucide="wand-sparkles" class="w-3.5 h-3.5 pointer-events-none"></i> Aggiungi da testo
+      </button>
+    </div>
     <form id="sessionForm" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
       <div class="col-span-1">
         <label class="block text-xs text-[var(--ink-muted)] mb-1">Data</label>
@@ -283,6 +288,9 @@
         <p id="previewProfit" class="text-lg font-bold text-[var(--ink-secondary)]">€0.00</p>
       </div>
     </form>
+    <p id="smartAddNotice" class="hidden mt-3 text-xs text-[var(--warn)] bg-[var(--warn-soft-bg)] border border-[var(--warn-soft-border)] rounded-lg px-3 py-2">
+      Testo analizzato: completa i campi evidenziati e premi "Aggiungi".
+    </p>
   </section>
 
   <!-- Filters -->
@@ -424,6 +432,30 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<div id="smartAddModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+  <div id="smartAddBackdrop" class="absolute inset-0 bg-black/60"></div>
+  <div class="relative w-full max-w-lg bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-2xl shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-hairline)]">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] flex items-center gap-2">
+        <i data-lucide="wand-sparkles" class="w-4 h-4 text-[var(--accent-ink)]"></i> Aggiungi da testo
+      </h2>
+      <button id="btnSmartAddClose" class="text-[var(--ink-faint)] hover:text-[var(--ink-primary)]">
+        <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
+      </button>
+    </div>
+    <div class="p-5 space-y-3">
+      <textarea id="smartAddInput" rows="4" placeholder="Es: ieri su Bet365 ho depositato 50€ e vinto 80€, scommesse sportive"
+        class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-3 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)] resize-none"></textarea>
+      <p class="text-xs text-[var(--ink-muted)]">
+        Riconosce piattaforma e tipo di gioco (anche tra quelli già usati), date come "oggi"/"ieri" o gg/mm/aaaa, e importi vicino a parole come "depositato", "vinto", "incassato", "perso". I campi non riconosciuti restano da completare a mano.
+      </p>
+      <button id="btnSmartAddAnalyze" type="button" class="w-full flex items-center justify-center gap-1.5 bg-[var(--accent-solid)] hover:bg-[var(--accent-solid-hover)] text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+        <i data-lucide="wand-sparkles" class="w-4 h-4 pointer-events-none"></i> Analizza
+      </button>
     </div>
   </div>
 </div>
@@ -1056,11 +1088,209 @@
     e.target.reset();
     document.getElementById('fDate').value = todayISO();
     updatePreview();
+    document.getElementById('smartAddNotice').classList.add('hidden');
   });
 
   function todayISO() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // --- Smart add: offline free-text parser ---
+  const ITALIAN_MONTHS = {
+    gennaio: 0, febbraio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5,
+    luglio: 6, agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11,
+  };
+  const DEPOSIT_KEYWORDS = '(?:deposit\\w*|puntat\\w*|investit\\w*|buy-?in)';
+  const CASHOUT_KEYWORDS = '(?:cash-?out\\w*|incassat\\w*|ritirat\\w*|prelevat\\w*|vint\\w*|guadagnat\\w*)';
+  const LOSS_KEYWORDS = '(?:pers\\w*|perdit\\w*)';
+  const PROFIT_KEYWORDS = '(?:guadagnat\\w*|profitt\\w*|in attivo)';
+
+  function matchKnownTerm(text, terms) {
+    const lower = text.toLowerCase();
+    const isWordChar = (ch) => /[a-z0-9àèéìòù]/i.test(ch || '');
+    let best = null, bestIdx = Infinity, bestLen = 0;
+    for (const term of terms) {
+      const t = term.toLowerCase();
+      if (!t) continue;
+      let idx = lower.indexOf(t);
+      while (idx !== -1) {
+        const before = idx > 0 ? lower[idx - 1] : '';
+        const after = lower[idx + t.length] || '';
+        if (!isWordChar(before) && !isWordChar(after)) {
+          if (idx < bestIdx || (idx === bestIdx && t.length > bestLen)) {
+            best = term; bestIdx = idx; bestLen = t.length;
+          }
+          break;
+        }
+        idx = lower.indexOf(t, idx + 1);
+      }
+    }
+    return best;
+  }
+
+  function extractAmount(text, keywordPattern) {
+    // Prefer "keyword ... number" (the common Italian phrasing, e.g. "depositato 50€").
+    // Only fall back to "number ... keyword" if that fails, otherwise a nearby number
+    // belonging to a different keyword (or digits inside a platform name) gets grabbed.
+    const reAfter = new RegExp(keywordPattern + '\\D{0,15}?(\\d+(?:[.,]\\d{1,2})?)', 'i');
+    const reBefore = new RegExp('(\\d+(?:[.,]\\d{1,2})?)\\D{0,15}?' + keywordPattern, 'i');
+    const m = text.match(reAfter) || text.match(reBefore);
+    return m ? parseFloat(m[1].replace(',', '.')) : null;
+  }
+
+  function maskTerm(text, term) {
+    if (!term) return text;
+    const lower = text.toLowerCase();
+    const t = term.toLowerCase();
+    const isWordChar = (ch) => /[a-z0-9àèéìòù]/i.test(ch || '');
+    let idx = lower.indexOf(t);
+    while (idx !== -1) {
+      const before = idx > 0 ? lower[idx - 1] : '';
+      const after = lower[idx + t.length] || '';
+      if (!isWordChar(before) && !isWordChar(after)) {
+        return text.slice(0, idx) + ' '.repeat(t.length) + text.slice(idx + t.length);
+      }
+      idx = lower.indexOf(t, idx + 1);
+    }
+    return text;
+  }
+
+  function parseItalianDate(text) {
+    const lower = text.toLowerCase();
+    const today = new Date();
+    if (/\bl'?\s*altro\s*ieri\b|\baltroieri\b/.test(lower)) {
+      const d = new Date(today); d.setDate(d.getDate() - 2); return toISO(d);
+    }
+    if (/\bieri\b/.test(lower)) {
+      const d = new Date(today); d.setDate(d.getDate() - 1); return toISO(d);
+    }
+    if (/\boggi\b/.test(lower)) return toISO(today);
+
+    let m = lower.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/);
+    if (m) {
+      let [, dd, mm, yyyy] = m;
+      if (yyyy.length === 2) yyyy = '20' + yyyy;
+      const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      if (!isNaN(d.getTime())) return toISO(d);
+    }
+
+    m = lower.match(/\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+(\d{4}))?\b/);
+    if (m) {
+      const dd = Number(m[1]);
+      const month = ITALIAN_MONTHS[m[2]];
+      const year = m[3] ? Number(m[3]) : today.getFullYear();
+      let d = new Date(year, month, dd);
+      if (!m[3] && d.getTime() > today.getTime()) d = new Date(year - 1, month, dd);
+      if (!isNaN(d.getTime())) return toISO(d);
+    }
+
+    return null;
+  }
+
+  function parseSessionText(text) {
+    const knownPlatforms = [...new Set([...PLATFORM_SUGGESTIONS, ...uniqueValues(sessions, 'platform')])];
+    const knownGameTypes = [...new Set([...GAMETYPE_SUGGESTIONS, ...uniqueValues(sessions, 'gameType')])];
+    const status = {};
+
+    const platform = matchKnownTerm(text, knownPlatforms);
+    status.platform = platform ? 'found' : 'missing';
+
+    const gameType = matchKnownTerm(text, knownGameTypes);
+    status.gameType = gameType ? 'found' : 'missing';
+
+    const date = parseItalianDate(text) || todayISO();
+
+    // Mask the matched platform name before hunting for amounts: names like "Bet365"
+    // contain digits that would otherwise get mistaken for a deposit/cashout value.
+    const amountText = maskTerm(text, platform);
+    const depositExplicit = extractAmount(amountText, DEPOSIT_KEYWORDS);
+    const cashoutExplicit = extractAmount(amountText, CASHOUT_KEYWORDS);
+    let deposit = null, cashout = null;
+
+    if (depositExplicit !== null && cashoutExplicit !== null) {
+      deposit = depositExplicit; cashout = cashoutExplicit;
+      status.deposit = 'found'; status.cashout = 'found';
+    } else if (depositExplicit === null && cashoutExplicit === null) {
+      const lossAmount = extractAmount(amountText, LOSS_KEYWORDS);
+      const profitAmount = lossAmount === null ? extractAmount(amountText, PROFIT_KEYWORDS) : null;
+      if (lossAmount !== null) {
+        deposit = lossAmount; cashout = 0;
+        status.deposit = 'inferred'; status.cashout = 'inferred';
+      } else if (profitAmount !== null) {
+        deposit = 0; cashout = profitAmount;
+        status.deposit = 'inferred'; status.cashout = 'inferred';
+      } else {
+        status.deposit = 'missing'; status.cashout = 'missing';
+      }
+    } else if (depositExplicit !== null) {
+      deposit = depositExplicit;
+      status.deposit = 'found'; status.cashout = 'missing';
+    } else {
+      cashout = cashoutExplicit;
+      status.cashout = 'found'; status.deposit = 'missing';
+    }
+
+    return {
+      date,
+      platform: platform || '',
+      gameType: gameType || '',
+      deposit,
+      cashout,
+      notes: text.trim(),
+      status,
+    };
+  }
+
+  function markFieldStatus(id, status) {
+    const el = document.getElementById(id);
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+    el.style.borderStyle = '';
+    el.style.borderColor = '';
+    el.removeAttribute('title');
+    if (status === 'missing') {
+      el.style.outline = '2px solid var(--warn)';
+      el.style.outlineOffset = '-1px';
+    } else if (status === 'inferred') {
+      el.style.borderStyle = 'dashed';
+      el.style.borderColor = 'var(--warn)';
+      el.title = 'Valore dedotto dal testo, verifica prima di salvare';
+    }
+    el.addEventListener('input', function clear() {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+      el.style.borderStyle = '';
+      el.style.borderColor = '';
+      el.removeAttribute('title');
+      el.removeEventListener('input', clear);
+    }, { once: true });
+  }
+
+  function applyParsedSession(parsed) {
+    document.getElementById('fDate').value = parsed.date;
+    document.getElementById('fPlatform').value = parsed.platform;
+    document.getElementById('fGameType').value = parsed.gameType;
+    document.getElementById('fDeposit').value = parsed.deposit === null ? '' : parsed.deposit;
+    document.getElementById('fCashout').value = parsed.cashout === null ? '' : parsed.cashout;
+    document.getElementById('fNotes').value = parsed.notes;
+    updatePreview();
+
+    markFieldStatus('fPlatform', parsed.status.platform);
+    markFieldStatus('fGameType', parsed.status.gameType);
+    markFieldStatus('fDeposit', parsed.status.deposit);
+    markFieldStatus('fCashout', parsed.status.cashout);
+
+    const missing = ['platform', 'gameType', 'deposit', 'cashout'].filter((k) => parsed.status[k] === 'missing');
+    closeSmartAddModal();
+
+    if (missing.length === 0) {
+      document.getElementById('sessionForm').requestSubmit();
+    } else {
+      const idByKey = { platform: 'fPlatform', gameType: 'fGameType', deposit: 'fDeposit', cashout: 'fCashout' };
+      document.getElementById('smartAddNotice').classList.remove('hidden');
+      document.getElementById(idByKey[missing[0]]).focus();
+    }
   }
 
   function csvEscape(field) {
@@ -1168,7 +1398,32 @@
   document.getElementById('btnSettingsClose').addEventListener('click', closeSettingsModal);
   document.getElementById('settingsBackdrop').addEventListener('click', closeSettingsModal);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
+    if (!document.getElementById('smartAddModal').classList.contains('hidden')) closeSmartAddModal();
+  });
+
+  // Smart add modal
+  function openSmartAddModal() {
+    document.getElementById('smartAddNotice').classList.add('hidden');
+    document.getElementById('smartAddInput').value = '';
+    const modal = document.getElementById('smartAddModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.getElementById('smartAddInput').focus();
+  }
+  function closeSmartAddModal() {
+    const modal = document.getElementById('smartAddModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  document.getElementById('btnSmartAdd').addEventListener('click', openSmartAddModal);
+  document.getElementById('btnSmartAddClose').addEventListener('click', closeSmartAddModal);
+  document.getElementById('smartAddBackdrop').addEventListener('click', closeSmartAddModal);
+  document.getElementById('btnSmartAddAnalyze').addEventListener('click', () => {
+    const text = document.getElementById('smartAddInput').value.trim();
+    if (!text) return;
+    applyParsedSession(parseSessionText(text));
   });
   document.querySelectorAll('.settings-tab').forEach((btn) => {
     btn.addEventListener('click', () => setActiveSettingsTab(btn.dataset.tab));
