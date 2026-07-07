@@ -219,15 +219,18 @@
       <p class="text-xs text-[var(--ink-muted)] mb-3" id="groupChartSubtitle">Profitto totale per piattaforma</p>
       <div id="platformChart" class="relative"></div>
     </div>
-  </section>
 
-  <!-- Heatmap -->
-  <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
-    <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-0.5 flex items-center gap-2">
-      <i data-lucide="calendar-days" class="w-4 h-4 text-[var(--accent-ink)]"></i> Andamento Giornaliero
-    </h2>
-    <p class="text-xs text-[var(--ink-muted)] mb-3">Ultimi 90 giorni: profitto per giorno</p>
-    <div id="heatmapChart" class="relative overflow-x-auto"></div>
+    <!-- Heatmap -->
+    <div class="lg:col-span-2 bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-0.5 flex items-center gap-2">
+        <i data-lucide="calendar-days" class="w-4 h-4 text-[var(--accent-ink)]"></i> Andamento Giornaliero
+      </h2>
+      <p class="text-xs text-[var(--ink-muted)] mb-3">Ultimi 90 giorni: profitto per giorno</p>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+        <div id="heatmapChart" class="relative overflow-x-auto shrink-0"></div>
+        <div id="heatmapStats" class="flex flex-wrap gap-x-8 gap-y-3 sm:pl-5 sm:border-l border-[var(--divide-hairline)]"></div>
+      </div>
+    </div>
   </section>
 
   <!-- Form -->
@@ -837,6 +840,7 @@
 
   function renderHeatmap() {
     const container = document.getElementById('heatmapChart');
+    const statsContainer = document.getElementById('heatmapStats');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const rangeStart = new Date(today);
@@ -858,10 +862,44 @@
     const activeDays = daysInRange.filter((d) => byDate.has(toISO(d)));
     if (activeDays.length === 0) {
       chartEmptyState(container, 'Nessuna sessione negli ultimi 90 giorni');
+      statsContainer.innerHTML = '';
       return;
     }
 
     const maxAbs = Math.max(1, ...activeDays.map((d) => Math.abs(byDate.get(toISO(d)).profit)));
+
+    let periodProfit = 0;
+    let bestDay = null;
+    let worstDay = null;
+    for (const d of activeDays) {
+      const entry = byDate.get(toISO(d));
+      periodProfit += entry.profit;
+      if (!bestDay || entry.profit > byDate.get(toISO(bestDay)).profit) bestDay = d;
+      if (!worstDay || entry.profit < byDate.get(toISO(worstDay)).profit) worstDay = d;
+    }
+    const periodProfitClass = periodProfit > 0 ? 'text-[var(--good)]' : periodProfit < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-primary)]';
+    const bestProfit = byDate.get(toISO(bestDay)).profit;
+    const worstProfit = byDate.get(toISO(worstDay)).profit;
+    statsContainer.innerHTML = `
+      <div>
+        <p class="text-[10px] text-[var(--ink-muted)] font-medium mb-1">Giorni attivi</p>
+        <p class="text-sm font-semibold text-[var(--ink-primary)]">${activeDays.length} <span class="text-[var(--ink-faint)] font-normal">/ ${daysInRange.length}</span></p>
+      </div>
+      <div>
+        <p class="text-[10px] text-[var(--ink-muted)] font-medium mb-1">Profitto nel periodo</p>
+        <p class="text-sm font-semibold ${periodProfitClass}">${formatCurrency(periodProfit)}</p>
+      </div>
+      <div>
+        <p class="text-[10px] text-[var(--ink-muted)] font-medium mb-1">Miglior giorno</p>
+        <p class="text-sm font-semibold text-[var(--good)]">${formatCurrency(bestProfit)}</p>
+        <p class="text-[10px] text-[var(--ink-faint)]">${formatDate(toISO(bestDay))}</p>
+      </div>
+      <div>
+        <p class="text-[10px] text-[var(--ink-muted)] font-medium mb-1">Giorno peggiore</p>
+        <p class="text-sm font-semibold text-[var(--bad)]">${formatCurrency(worstProfit)}</p>
+        <p class="text-[10px] text-[var(--ink-faint)]">${formatDate(toISO(worstDay))}</p>
+      </div>
+    `;
 
     const gridStart = new Date(rangeStart);
     const dow = (gridStart.getDay() + 6) % 7; // 0 = Monday

@@ -6,6 +6,10 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 
 ![Screenshot Bet Tracker](docs/screenshot.png)
 
+Tema chiaro/scuro e colore d'accento personalizzabili dal pannello Impostazioni:
+
+![Screenshot pannello Impostazioni](docs/screenshot-settings.png)
+
 ## Download
 
 | Piattaforma | Release |
