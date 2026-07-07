@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to attach the build to'
+        description: 'Base version tag (the macOS release will be tag-mac)'
         required: true
         default: 'v1.0.0'
 
@@ -38,8 +38,9 @@ jobs:
           name: BetTracker-macOS
           path: release/BetTracker-darwin-universal.zip
 
-      - name: Attach to GitHub Release
+      - name: Publish macOS Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ (github.event.inputs.tag || github.ref_name) }}-mac
+          name: Bet Tracker ${{ github.event.inputs.tag || github.ref_name }} (macOS)
           files: release/BetTracker-darwin-universal.zip
