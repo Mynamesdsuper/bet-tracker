@@ -1,6 +1,15 @@
 # Bet Tracker
 
-App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, storico sessioni filtrabile, tutto salvato in locale. Disponibile sia come pagina web sia come app desktop Windows standalone.
+![Build macOS](https://github.com/Mynamesdsuper/bet-tracker/actions/workflows/build-mac.yml/badge.svg)
+
+App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, storico sessioni filtrabile, tutto salvato in locale. Disponibile come app desktop standalone (Windows e macOS) o come pagina web.
+
+## Download
+
+| Piattaforma | Release |
+| --- | --- |
+| Windows | [v1.0.0](https://github.com/Mynamesdsuper/bet-tracker/releases/tag/v1.0.0) |
+| macOS (Intel + Apple Silicon) | [v1.0.0-mac](https://github.com/Mynamesdsuper/bet-tracker/releases/tag/v1.0.0-mac) |
 
 ## Funzionalità
 
@@ -11,7 +20,7 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 - **Backup dati**: esportazione/importazione in formato JSON
 - **Persistenza locale**: nessun account, nessun server, nessun dato inviato altrove
 
-## Come usarla
+## Come compilarla da sorgente
 
 ### App desktop (Windows)
 
