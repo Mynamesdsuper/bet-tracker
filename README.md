@@ -63,15 +63,17 @@ L'app risultante non è firmata/notarizzata: al primo avvio macOS mostrerà un a
 Tutta la pipeline di release (bump versione, build Windows, build macOS, pubblicazione) è automatizzata in `.github/workflows/release.yml`. Per pubblicare una nuova versione, senza bisogno di compilare nulla in locale:
 
 ```
-gh workflow run release.yml -f version=1.1.0
+gh workflow run release.yml -f version=1.1.0 -f changelog="- Novità 1
+- Novità 2
+- Fix vari"
 ```
 
-(oppure da GitHub → Actions → "Release" → Run workflow, inserendo il numero di versione senza `v`)
+(oppure da GitHub → Actions → "Release" → Run workflow, inserendo numero di versione e changelog nei rispettivi campi)
 
 Il workflow:
 1. aggiorna `package.json`/`package-lock.json` alla nuova versione, crea il tag `vX.Y.Z` e lo pusha
 2. builda in parallelo il pacchetto Windows (`windows-latest`) e quello macOS (`macos-latest`)
-3. pubblica due release separate: `vX.Y.Z` (Windows) e `vX.Y.Z-mac` (macOS)
+3. pubblica due release separate: `vX.Y.Z` (Windows) e `vX.Y.Z-mac` (macOS), ciascuna con il changelog nella descrizione e come file `CHANGELOG-vX.Y.Z.txt` allegato allo scaricamento (se il campo `changelog` viene omesso, si usa un testo di default che rimanda ai commit su GitHub)
 
 ## Struttura del progetto
 

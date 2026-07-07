@@ -6,6 +6,10 @@ on:
       version:
         description: 'Nuova versione (es. 1.1.0, senza "v")'
         required: true
+      changelog:
+        description: 'Changelog di questa release (una voce per riga)'
+        required: false
+        default: 'Vedi la cronologia dei commit su GitHub per i dettagli.'
 
 permissions:
   contents: write
@@ -55,12 +59,19 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path "release/Bet Tracker-win32-x64" -DestinationPath "release/BetTracker-win32-x64-${{ needs.prepare.outputs.tag }}.zip"
 
+      - name: Write changelog
+        shell: bash
+        run: printf '%s\n' "${{ github.event.inputs.changelog }}" > "release/CHANGELOG-${{ needs.prepare.outputs.tag }}.txt"
+
       - name: Publish Windows Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           name: Bet Tracker ${{ needs.prepare.outputs.tag }} (Windows)
-          files: release/BetTracker-win32-x64-${{ needs.prepare.outputs.tag }}.zip
+          body: ${{ github.event.inputs.changelog }}
+          files: |
+            release/BetTracker-win32-x64-${{ needs.prepare.outputs.tag }}.zip
+            release/CHANGELOG-${{ needs.prepare.outputs.tag }}.txt
 
   build-mac:
     needs: prepare
@@ -83,9 +94,15 @@ jobs:
           cd release
           zip -r -y "BetTracker-darwin-universal.zip" "Bet Tracker-darwin-universal"
 
+      - name: Write changelog
+        run: printf '%s\n' "${{ github.event.inputs.changelog }}" > "release/CHANGELOG-${{ needs.prepare.outputs.tag }}.txt"
+
       - name: Publish macOS Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}-mac
           name: Bet Tracker ${{ needs.prepare.outputs.tag }} (macOS)
-          files: release/BetTracker-darwin-universal.zip
+          body: ${{ github.event.inputs.changelog }}
+          files: |
+            release/BetTracker-darwin-universal.zip
+            release/CHANGELOG-${{ needs.prepare.outputs.tag }}.txt
