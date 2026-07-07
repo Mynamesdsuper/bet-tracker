@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Bet Tracker - tracciatore di sessioni di scommesse e gioco",
+  "license": "MIT",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
