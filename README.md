@@ -10,8 +10,8 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 
 | Piattaforma | Release |
 | --- | --- |
-| Windows | [v1.0.0](https://github.com/Mynamesdsuper/bet-tracker/releases/tag/v1.0.0) |
-| macOS (Intel + Apple Silicon) | [v1.0.0-mac](https://github.com/Mynamesdsuper/bet-tracker/releases/tag/v1.0.0-mac) |
+| Windows | [ultima release](https://github.com/Mynamesdsuper/bet-tracker/releases/latest) |
+| macOS (Intel + Apple Silicon) | [ultima release (-mac)](https://github.com/Mynamesdsuper/bet-tracker/releases) |
 
 ## Funzionalità
 
@@ -21,6 +21,7 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 - **Eliminazione** di singole sessioni con conferma
 - **Backup dati**: esportazione/importazione in formato JSON
 - **Persistenza locale**: nessun account, nessun server, nessun dato inviato altrove
+- **Notifica di aggiornamento**: nella versione desktop, un banner discreto segnala quando è disponibile una nuova release (controllo passivo via API GitHub, al massimo una volta ogni 24h, sempre disattivabile)
 
 ## Come compilarla da sorgente
 
@@ -75,6 +76,7 @@ Il workflow:
 ```
 index.html       # SPA: markup, stile (Tailwind) e logica (JS vanilla)
 main.js          # processo principale Electron
+preload.js       # espone in modo sicuro la versione dell'app al renderer (per la notifica di aggiornamento)
 vendor/          # Tailwind CSS e Lucide Icons bundlati in locale (offline-first)
 manifest.json    # manifest PWA (per l'uso come app installabile da browser)
 sw.js            # service worker PWA (disattivato quando l'app gira in Electron)

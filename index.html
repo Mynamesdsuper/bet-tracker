@@ -20,6 +20,20 @@
 
 <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
 
+  <!-- Update banner -->
+  <div id="updateBanner" class="hidden items-center justify-between gap-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm rounded-xl px-4 py-3 mb-6">
+    <div class="flex items-center gap-2">
+      <i data-lucide="arrow-up-circle" class="w-4 h-4"></i>
+      <span id="updateBannerText"></span>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+      <a id="updateBannerLink" href="#" target="_blank" rel="noopener" class="text-indigo-200 hover:text-white font-medium underline">Scarica</a>
+      <button id="updateBannerDismiss" class="text-indigo-300/60 hover:text-indigo-100">
+        <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
     <div class="flex items-center gap-3">
@@ -416,6 +430,55 @@
 
   document.getElementById('fDate').value = todayISO();
   renderAll();
+  checkForUpdates();
+
+  function compareVersions(a, b) {
+    for (let i = 0; i < 3; i++) {
+      if (a[i] !== b[i]) return a[i] - b[i];
+    }
+    return 0;
+  }
+
+  function checkForUpdates() {
+    if (!window.betTracker?.version) return;
+    const lastCheckKey = 'bettracker_update_last_check';
+    const dismissedKey = 'bettracker_update_dismissed';
+    const lastCheck = Number(localStorage.getItem(lastCheckKey) || 0);
+    if (Date.now() - lastCheck < 24 * 60 * 60 * 1000) return;
+
+    fetch('https://api.github.com/repos/Mynamesdsuper/bet-tracker/releases')
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((releases) => {
+        localStorage.setItem(lastCheckKey, String(Date.now()));
+        const versionRe = /^v(\d+)\.(\d+)\.(\d+)$/;
+        let latest = null;
+        for (const rel of releases) {
+          const m = versionRe.exec(rel.tag_name);
+          if (!m) continue;
+          const parts = [Number(m[1]), Number(m[2]), Number(m[3])];
+          if (!latest || compareVersions(parts, latest.parts) > 0) {
+            latest = { parts, tag: rel.tag_name, url: rel.html_url };
+          }
+        }
+        if (!latest) return;
+        const currentParts = window.betTracker.version.split('.').map(Number);
+        if (compareVersions(latest.parts, currentParts) <= 0) return;
+        if (localStorage.getItem(dismissedKey) === latest.tag) return;
+
+        document.getElementById('updateBannerText').textContent =
+          `Nuova versione disponibile: ${latest.tag} (stai usando v${window.betTracker.version})`;
+        document.getElementById('updateBannerLink').href = latest.url;
+        const banner = document.getElementById('updateBanner');
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+        document.getElementById('updateBannerDismiss').addEventListener('click', () => {
+          localStorage.setItem(dismissedKey, latest.tag);
+          banner.classList.add('hidden');
+          banner.classList.remove('flex');
+        });
+      })
+      .catch(() => {});
+  }
 
   if ('serviceWorker' in navigator && !navigator.userAgent.includes('Electron')) {
     window.addEventListener('load', () => {
