@@ -15,12 +15,13 @@ App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, s
 
 ## Funzionalità
 
-- **Dashboard KPI** in tempo reale: Profitto Totale, ROI %, Volume di Gioco, Win Rate %
-- **Grafici**: andamento del profitto cumulato nel tempo e profitto totale per piattaforma, con tooltip interattivi
+- **Dashboard KPI** in tempo reale: Profitto Totale, ROI %, Volume di Gioco, Win Rate %, Serie Attuale (streak vittorie/sconfitte)
+- **Grafici**: andamento del profitto cumulato nel tempo, profitto per piattaforma o per tipo di gioco (toggle), heatmap calendario degli ultimi 90 giorni — tutti con tooltip interattivi
 - **Form di inserimento** rapido: data, piattaforma, tipo di gioco, deposito, cashout, note — con anteprima live del profitto/perdita
-- **Tabella sessioni** filtrabile per piattaforma e tipo di gioco, ordinabile per data o profitto
-- **Eliminazione** di singole sessioni con conferma
-- **Backup dati**: esportazione/importazione in formato JSON
+- **Tabella sessioni** filtrabile per piattaforma e tipo di gioco, ordinabile per data o profitto (ultimo filtro/ordinamento ricordato)
+- **Eliminazione** di singole sessioni, con conferma disattivabile dalle impostazioni
+- **Pannello Impostazioni**: tema chiaro/scuro, 4 colori d'accento selezionabili, budget mensile di deposito con banner di avviso, promemoria di backup periodico
+- **Backup dati**: esportazione/importazione in formato JSON, esportazione CSV, reset completo dei dati
 - **Persistenza locale**: nessun account, nessun server, nessun dato inviato altrove
 - **Notifica di aggiornamento**: nella versione desktop, un banner discreto segnala quando è disponibile una nuova release (controllo passivo via API GitHub, al massimo una volta ogni 24h, sempre disattivabile)
 

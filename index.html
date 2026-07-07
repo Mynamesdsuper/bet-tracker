@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it" class="dark">
+<html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,151 +7,275 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#09090b">
+<script>
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('bettracker_settings') || '{}');
+    var theme = s.theme === 'light' ? 'light' : 'dark';
+    var accent = ['indigo', 'violet', 'blue', 'fuchsia'].includes(s.accent) ? s.accent : 'indigo';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-accent', accent);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-accent', 'indigo');
+  }
+})();
+</script>
 <script src="vendor/tailwind.js"></script>
 <script src="vendor/lucide.js"></script>
 <style>
   body { font-family: 'Segoe UI', system-ui, sans-serif; }
   ::-webkit-scrollbar { height: 8px; width: 8px; }
-  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
+
+  :root[data-theme="dark"] {
+    --surface-page: #09090b;
+    --surface-card: #18181b;
+    --border-hairline: rgba(255,255,255,0.10);
+    --divide-hairline: rgba(255,255,255,0.05);
+    --row-hover: rgba(255,255,255,0.02);
+    --ink-primary: #f4f4f5;
+    --ink-secondary: #a1a1aa;
+    --ink-muted: #71717a;
+    --ink-faint: #52525b;
+    --scrollbar-thumb: #3f3f46;
+    --input-bg: #09090b;
+    --good: #34d399;
+    --bad: #f43f5e;
+    --warn: #fbbf24;
+    --warn-soft-bg: rgba(251,191,36,0.10);
+    --warn-soft-border: rgba(251,191,36,0.20);
+  }
+  :root[data-theme="light"] {
+    --surface-page: #fafafa;
+    --surface-card: #ffffff;
+    --border-hairline: rgba(0,0,0,0.08);
+    --divide-hairline: rgba(0,0,0,0.06);
+    --row-hover: rgba(0,0,0,0.02);
+    --ink-primary: #18181b;
+    --ink-secondary: #52525b;
+    --ink-muted: #71717a;
+    --ink-faint: #a1a1aa;
+    --scrollbar-thumb: #d4d4d8;
+    --input-bg: #f4f4f5;
+    --good: #047857;
+    --bad: #e11d48;
+    --warn: #b45309;
+    --warn-soft-bg: rgba(180,83,9,0.08);
+    --warn-soft-border: rgba(180,83,9,0.20);
+  }
+
+  :root[data-accent="indigo"]   { --accent-solid:#4f46e5; --accent-solid-hover:#6366f1; --accent-soft-rgb:99,102,241; }
+  :root[data-accent="violet"]   { --accent-solid:#7c3aed; --accent-solid-hover:#8b5cf6; --accent-soft-rgb:139,92,246; }
+  :root[data-accent="blue"]     { --accent-solid:#2563eb; --accent-solid-hover:#3b82f6; --accent-soft-rgb:59,130,246; }
+  :root[data-accent="fuchsia"]  { --accent-solid:#c026d3; --accent-solid-hover:#d946ef; --accent-soft-rgb:217,70,239; }
+
+  :root[data-theme="dark"][data-accent="indigo"]    { --accent-ink:#818cf8; }
+  :root[data-theme="dark"][data-accent="violet"]    { --accent-ink:#a78bfa; }
+  :root[data-theme="dark"][data-accent="blue"]      { --accent-ink:#60a5fa; }
+  :root[data-theme="dark"][data-accent="fuchsia"]   { --accent-ink:#e879f9; }
+  :root[data-theme="light"][data-accent="indigo"]   { --accent-ink:#4f46e5; }
+  :root[data-theme="light"][data-accent="violet"]   { --accent-ink:#7c3aed; }
+  :root[data-theme="light"][data-accent="blue"]     { --accent-ink:#2563eb; }
+  :root[data-theme="light"][data-accent="fuchsia"]  { --accent-ink:#c026d3; }
+
+  :root {
+    --accent-soft-bg: rgba(var(--accent-soft-rgb), 0.10);
+    --accent-soft-border: rgba(var(--accent-soft-rgb), 0.20);
+    --accent-ring: rgba(var(--accent-soft-rgb), 0.50);
+  }
+
+  .settings-tab.is-active { background: var(--surface-page); color: var(--ink-primary); }
+  .settings-tab:not(.is-active) { color: var(--ink-muted); }
+  .theme-choice-btn.is-active { border-color: var(--accent-solid); background: var(--accent-soft-bg); color: var(--ink-primary); }
+  .accent-choice-btn.is-active { outline: 2px solid var(--ink-primary); outline-offset: 2px; }
+  .group-toggle-btn.is-active { background: var(--surface-card); color: var(--ink-primary); }
+  .group-toggle-btn:not(.is-active) { color: var(--ink-muted); }
 </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+<body class="bg-[var(--surface-page)] text-[var(--ink-primary)] min-h-screen">
 
 <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
 
-  <!-- Update banner -->
-  <div id="updateBanner" class="hidden items-center justify-between gap-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm rounded-xl px-4 py-3 mb-6">
-    <div class="flex items-center gap-2">
-      <i data-lucide="arrow-up-circle" class="w-4 h-4"></i>
-      <span id="updateBannerText"></span>
+  <!-- Banners -->
+  <div class="space-y-3 mb-6">
+    <div id="budgetBanner" class="hidden items-center justify-between gap-3 bg-[var(--warn-soft-bg)] border border-[var(--warn-soft-border)] text-[var(--warn)] text-sm rounded-xl px-4 py-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        <span id="budgetBannerText"></span>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <button id="budgetBannerSettings" class="text-[var(--warn)] hover:text-[var(--ink-primary)] font-medium underline">Impostazioni</button>
+        <button id="budgetBannerDismiss" class="text-[var(--warn)] hover:text-[var(--ink-primary)]">
+          <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+      </div>
     </div>
-    <div class="flex items-center gap-3 shrink-0">
-      <a id="updateBannerLink" href="#" target="_blank" rel="noopener" class="text-indigo-200 hover:text-white font-medium underline">Scarica</a>
-      <button id="updateBannerDismiss" class="text-indigo-300/60 hover:text-indigo-100">
-        <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
-      </button>
+
+    <div id="updateBanner" class="hidden items-center justify-between gap-3 bg-[var(--accent-soft-bg)] border border-[var(--accent-soft-border)] text-[var(--accent-ink)] text-sm rounded-xl px-4 py-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="arrow-up-circle" class="w-4 h-4"></i>
+        <span id="updateBannerText"></span>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <a id="updateBannerLink" href="#" target="_blank" rel="noopener" class="text-[var(--accent-ink)] hover:text-[var(--ink-primary)] font-medium underline">Scarica</a>
+        <button id="updateBannerDismiss" class="text-[var(--accent-ink)] hover:text-[var(--ink-primary)]">
+          <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="backupBanner" class="hidden items-center justify-between gap-3 bg-[var(--accent-soft-bg)] border border-[var(--accent-soft-border)] text-[var(--accent-ink)] text-sm rounded-xl px-4 py-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="save" class="w-4 h-4"></i>
+        <span id="backupBannerText"></span>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <button id="backupBannerExport" class="text-[var(--accent-ink)] hover:text-[var(--ink-primary)] font-medium underline">Esporta ora</button>
+        <button id="backupBannerDismiss" class="text-[var(--accent-ink)] hover:text-[var(--ink-primary)]">
+          <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Header -->
   <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
     <div class="flex items-center gap-3">
-      <div class="bg-indigo-500/10 text-indigo-400 p-2.5 rounded-xl border border-indigo-500/20">
+      <div class="bg-[var(--accent-soft-bg)] text-[var(--accent-ink)] p-2.5 rounded-xl border border-[var(--accent-soft-border)]">
         <i data-lucide="line-chart" class="w-6 h-6"></i>
       </div>
       <div>
-        <h1 class="text-xl font-bold tracking-tight text-zinc-50">Bet Tracker</h1>
-        <p class="text-xs text-zinc-500">Le tue sessioni di gioco, sempre sotto controllo</p>
+        <h1 class="text-xl font-bold tracking-tight text-[var(--ink-primary)]">Bet Tracker</h1>
+        <p class="text-xs text-[var(--ink-muted)]">Le tue sessioni di gioco, sempre sotto controllo</p>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button id="btnExport" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 bg-zinc-900 hover:bg-zinc-800 border border-white/10 px-3 py-2 rounded-lg transition-colors">
-        <i data-lucide="download" class="w-3.5 h-3.5"></i> Esporta
+      <button id="btnSettings" class="flex items-center gap-1.5 text-xs text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--surface-card)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-3 py-2 rounded-lg transition-colors">
+        <i data-lucide="settings" class="w-3.5 h-3.5 pointer-events-none"></i> Impostazioni
       </button>
-      <button id="btnImport" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 bg-zinc-900 hover:bg-zinc-800 border border-white/10 px-3 py-2 rounded-lg transition-colors">
-        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Importa
-      </button>
-      <input type="file" id="fileImport" accept="application/json" class="hidden">
     </div>
   </header>
 
   <!-- KPI Bar -->
-  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+  <section class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-4 shadow-lg shadow-black/20">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-zinc-500 font-medium">Profitto Totale</span>
-        <i data-lucide="wallet" class="w-4 h-4 text-zinc-600"></i>
+        <span class="text-xs text-[var(--ink-muted)] font-medium">Profitto Totale</span>
+        <i data-lucide="wallet" class="w-4 h-4 text-[var(--ink-faint)]"></i>
       </div>
       <p id="kpiProfit" class="text-2xl font-bold">€0.00</p>
     </div>
-    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-4 shadow-lg shadow-black/20">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-zinc-500 font-medium">ROI</span>
-        <i data-lucide="percent" class="w-4 h-4 text-zinc-600"></i>
+        <span class="text-xs text-[var(--ink-muted)] font-medium">ROI</span>
+        <i data-lucide="percent" class="w-4 h-4 text-[var(--ink-faint)]"></i>
       </div>
-      <p id="kpiRoi" class="text-2xl font-bold text-zinc-100">0.00%</p>
+      <p id="kpiRoi" class="text-2xl font-bold text-[var(--ink-primary)]">0.00%</p>
     </div>
-    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-4 shadow-lg shadow-black/20">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-zinc-500 font-medium">Volume di Gioco</span>
-        <i data-lucide="coins" class="w-4 h-4 text-zinc-600"></i>
+        <span class="text-xs text-[var(--ink-muted)] font-medium">Volume di Gioco</span>
+        <i data-lucide="coins" class="w-4 h-4 text-[var(--ink-faint)]"></i>
       </div>
-      <p id="kpiVolume" class="text-2xl font-bold text-zinc-100">€0.00</p>
+      <p id="kpiVolume" class="text-2xl font-bold text-[var(--ink-primary)]">€0.00</p>
     </div>
-    <div class="bg-zinc-900 border border-white/10 rounded-xl p-4 shadow-lg shadow-black/20">
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-4 shadow-lg shadow-black/20">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-zinc-500 font-medium">Win Rate</span>
-        <i data-lucide="target" class="w-4 h-4 text-zinc-600"></i>
+        <span class="text-xs text-[var(--ink-muted)] font-medium">Win Rate</span>
+        <i data-lucide="target" class="w-4 h-4 text-[var(--ink-faint)]"></i>
       </div>
-      <p id="kpiWinrate" class="text-2xl font-bold text-zinc-100">0.00%</p>
+      <p id="kpiWinrate" class="text-2xl font-bold text-[var(--ink-primary)]">0.00%</p>
+    </div>
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-4 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-[var(--ink-muted)] font-medium">Serie Attuale</span>
+        <i data-lucide="flame" class="w-4 h-4 text-[var(--ink-faint)]"></i>
+      </div>
+      <p id="kpiStreak" class="text-2xl font-bold text-[var(--ink-primary)]">—</p>
     </div>
   </section>
 
   <!-- Charts -->
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-    <div class="lg:col-span-2 bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20">
-      <h2 class="text-sm font-semibold text-zinc-300 mb-0.5 flex items-center gap-2">
-        <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i> Andamento Profitto
+    <div class="lg:col-span-2 bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-0.5 flex items-center gap-2">
+        <i data-lucide="trending-up" class="w-4 h-4 text-[var(--accent-ink)]"></i> Andamento Profitto
       </h2>
-      <p class="text-xs text-zinc-500 mb-3">Profitto cumulato nel tempo</p>
+      <p class="text-xs text-[var(--ink-muted)] mb-3">Profitto cumulato nel tempo</p>
       <div id="profitChart" class="relative"></div>
     </div>
-    <div class="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20">
-      <h2 class="text-sm font-semibold text-zinc-300 mb-0.5 flex items-center gap-2">
-        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i> Per Piattaforma
-      </h2>
-      <p class="text-xs text-zinc-500 mb-3">Profitto totale per piattaforma</p>
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20">
+      <div class="flex items-center justify-between mb-0.5">
+        <h2 class="text-sm font-semibold text-[var(--ink-primary)] flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-[var(--accent-ink)]"></i> <span id="groupChartTitle">Per Piattaforma</span>
+        </h2>
+        <div class="flex items-center gap-0.5 bg-[var(--input-bg)] rounded-lg p-0.5">
+          <button data-group="platform" class="group-toggle-btn text-[10px] px-2 py-1 rounded-md transition-colors">Piattaforma</button>
+          <button data-group="gameType" class="group-toggle-btn text-[10px] px-2 py-1 rounded-md transition-colors">Tipo</button>
+        </div>
+      </div>
+      <p class="text-xs text-[var(--ink-muted)] mb-3" id="groupChartSubtitle">Profitto totale per piattaforma</p>
       <div id="platformChart" class="relative"></div>
     </div>
   </section>
 
+  <!-- Heatmap -->
+  <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
+    <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-0.5 flex items-center gap-2">
+      <i data-lucide="calendar-days" class="w-4 h-4 text-[var(--accent-ink)]"></i> Andamento Giornaliero
+    </h2>
+    <p class="text-xs text-[var(--ink-muted)] mb-3">Ultimi 90 giorni: profitto per giorno</p>
+    <div id="heatmapChart" class="relative overflow-x-auto"></div>
+  </section>
+
   <!-- Form -->
-  <section class="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
-    <h2 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-      <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-400"></i> Nuova Sessione
+  <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
+    <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-4 flex items-center gap-2">
+      <i data-lucide="plus-circle" class="w-4 h-4 text-[var(--accent-ink)]"></i> Nuova Sessione
     </h2>
     <form id="sessionForm" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
       <div class="col-span-1">
-        <label class="block text-xs text-zinc-500 mb-1">Data</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Data</label>
         <input type="date" id="fDate" required
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
       </div>
       <div class="col-span-1">
-        <label class="block text-xs text-zinc-500 mb-1">Piattaforma</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Piattaforma</label>
         <input type="text" id="fPlatform" list="platformList" required placeholder="Bet365..."
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
         <datalist id="platformList"></datalist>
       </div>
       <div class="col-span-1">
-        <label class="block text-xs text-zinc-500 mb-1">Tipo di gioco</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Tipo di gioco</label>
         <input type="text" id="fGameType" list="gameTypeList" required placeholder="Sport Betting..."
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
         <datalist id="gameTypeList"></datalist>
       </div>
       <div class="col-span-1">
-        <label class="block text-xs text-zinc-500 mb-1">Deposito (€)</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Deposito (€)</label>
         <input type="number" id="fDeposit" required min="0" step="0.01" placeholder="0.00"
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
       </div>
       <div class="col-span-1">
-        <label class="block text-xs text-zinc-500 mb-1">Cashout (€)</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Cashout (€)</label>
         <input type="number" id="fCashout" required min="0" step="0.01" placeholder="0.00"
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
       </div>
       <div class="col-span-1">
-        <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-          <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi
+        <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-[var(--accent-solid)] hover:bg-[var(--accent-solid-hover)] text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+          <i data-lucide="plus" class="w-4 h-4 pointer-events-none"></i> Aggiungi
         </button>
       </div>
       <div class="col-span-2 sm:col-span-3 lg:col-span-5">
-        <label class="block text-xs text-zinc-500 mb-1">Note (opzionale)</label>
+        <label class="block text-xs text-[var(--ink-muted)] mb-1">Note (opzionale)</label>
         <input type="text" id="fNotes" placeholder="Osservazioni sulla sessione..."
-          class="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+          class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
       </div>
       <div class="col-span-2 sm:col-span-3 lg:col-span-1 text-right">
-        <span class="text-xs text-zinc-500">Anteprima P/L</span>
-        <p id="previewProfit" class="text-lg font-bold text-zinc-400">€0.00</p>
+        <span class="text-xs text-[var(--ink-muted)]">Anteprima P/L</span>
+        <p id="previewProfit" class="text-lg font-bold text-[var(--ink-secondary)]">€0.00</p>
       </div>
     </form>
   </section>
@@ -159,17 +283,17 @@
   <!-- Filters -->
   <section class="flex flex-wrap items-center gap-3 mb-4">
     <div class="flex items-center gap-2">
-      <i data-lucide="filter" class="w-4 h-4 text-zinc-500"></i>
-      <select id="filterPlatform" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      <i data-lucide="filter" class="w-4 h-4 text-[var(--ink-muted)]"></i>
+      <select id="filterPlatform" class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--ink-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
         <option value="">Tutte le piattaforme</option>
       </select>
     </div>
-    <select id="filterGameType" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+    <select id="filterGameType" class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--ink-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
       <option value="">Tutti i tipi di gioco</option>
     </select>
     <div class="flex items-center gap-2 ml-auto">
-      <i data-lucide="arrow-up-down" class="w-4 h-4 text-zinc-500"></i>
-      <select id="sortOrder" class="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+      <i data-lucide="arrow-up-down" class="w-4 h-4 text-[var(--ink-muted)]"></i>
+      <select id="sortOrder" class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--ink-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
         <option value="date-desc">Data (più recente)</option>
         <option value="date-asc">Data (più vecchia)</option>
         <option value="profit-desc">Profitto (alto-basso)</option>
@@ -179,11 +303,11 @@
   </section>
 
   <!-- Table -->
-  <section class="bg-zinc-900 border border-white/10 rounded-xl shadow-lg shadow-black/20 overflow-hidden">
+  <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl shadow-lg shadow-black/20 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
+          <tr class="border-b border-[var(--border-hairline)] text-[var(--ink-muted)] text-xs uppercase tracking-wide">
             <th class="text-left font-medium px-4 py-3">Data</th>
             <th class="text-left font-medium px-4 py-3">Piattaforma</th>
             <th class="text-left font-medium px-4 py-3">Tipo</th>
@@ -194,10 +318,10 @@
             <th class="text-center font-medium px-4 py-3"></th>
           </tr>
         </thead>
-        <tbody id="sessionsTableBody" class="divide-y divide-white/5"></tbody>
+        <tbody id="sessionsTableBody" class="divide-y divide-[var(--divide-hairline)]"></tbody>
       </table>
     </div>
-    <div id="emptyState" class="hidden text-center py-12 text-zinc-600">
+    <div id="emptyState" class="hidden text-center py-12 text-[var(--ink-faint)]">
       <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2"></i>
       <p class="text-sm">Nessuna sessione registrata. Aggiungine una per iniziare.</p>
     </div>
@@ -205,12 +329,119 @@
 
 </div>
 
+<!-- Settings modal -->
+<div id="settingsModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+  <div id="settingsBackdrop" class="absolute inset-0 bg-black/60"></div>
+  <div class="relative w-full max-w-lg bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-2xl shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-hairline)]">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] flex items-center gap-2">
+        <i data-lucide="settings" class="w-4 h-4 text-[var(--accent-ink)]"></i> Impostazioni
+      </h2>
+      <button id="btnSettingsClose" class="text-[var(--ink-faint)] hover:text-[var(--ink-primary)]">
+        <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
+      </button>
+    </div>
+    <div class="flex gap-1 px-5 pt-3 border-b border-[var(--border-hairline)] text-xs">
+      <button data-tab="aspetto" class="settings-tab px-3 py-2 rounded-t-lg font-medium">Aspetto</button>
+      <button data-tab="obiettivi" class="settings-tab px-3 py-2 rounded-t-lg font-medium">Obiettivi</button>
+      <button data-tab="dati" class="settings-tab px-3 py-2 rounded-t-lg font-medium">Dati</button>
+      <button data-tab="preferenze" class="settings-tab px-3 py-2 rounded-t-lg font-medium">Preferenze</button>
+    </div>
+    <div class="p-5 max-h-[60vh] overflow-y-auto">
+
+      <div data-panel="aspetto" class="settings-panel space-y-5">
+        <div>
+          <p class="text-xs text-[var(--ink-muted)] mb-2 font-medium">Tema</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-theme-choice="dark" class="theme-choice-btn flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-[var(--border-hairline)] text-sm text-[var(--ink-secondary)] transition-colors">
+              <i data-lucide="moon" class="w-4 h-4 pointer-events-none"></i> Scuro
+            </button>
+            <button data-theme-choice="light" class="theme-choice-btn flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-[var(--border-hairline)] text-sm text-[var(--ink-secondary)] transition-colors">
+              <i data-lucide="sun" class="w-4 h-4 pointer-events-none"></i> Chiaro
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-[var(--ink-muted)] mb-2 font-medium">Colore d'accento</p>
+          <div class="flex items-center gap-3">
+            <button data-accent-choice="indigo" class="accent-choice-btn w-8 h-8 rounded-full transition-transform" style="background:#6366f1" title="Indigo"></button>
+            <button data-accent-choice="violet" class="accent-choice-btn w-8 h-8 rounded-full transition-transform" style="background:#8b5cf6" title="Violetto"></button>
+            <button data-accent-choice="blue" class="accent-choice-btn w-8 h-8 rounded-full transition-transform" style="background:#3b82f6" title="Blu"></button>
+            <button data-accent-choice="fuchsia" class="accent-choice-btn w-8 h-8 rounded-full transition-transform" style="background:#d946ef" title="Fucsia"></button>
+          </div>
+        </div>
+      </div>
+
+      <div data-panel="obiettivi" class="settings-panel hidden space-y-4">
+        <div>
+          <label class="block text-xs text-[var(--ink-muted)] mb-1">Budget mensile di deposito (€)</label>
+          <input type="number" id="setBudget" min="0" step="0.01" placeholder="Nessun limite"
+            class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
+          <p class="text-xs text-[var(--ink-muted)] mt-1">Ricevi un avviso quando il totale depositato nel mese corrente raggiunge questa cifra.</p>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-[var(--ink-secondary)]">
+          <input type="checkbox" id="setBudgetAlertEnabled" class="w-4 h-4">
+          Avvisami quando raggiungo il budget
+        </label>
+      </div>
+
+      <div data-panel="dati" class="settings-panel hidden space-y-2">
+        <button id="btnExport" class="w-full flex items-center gap-2 text-sm text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-3 py-2.5 rounded-lg transition-colors">
+          <i data-lucide="download" class="w-4 h-4 pointer-events-none"></i> Esporta JSON
+        </button>
+        <button id="btnExportCsv" class="w-full flex items-center gap-2 text-sm text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-3 py-2.5 rounded-lg transition-colors">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 pointer-events-none"></i> Esporta CSV
+        </button>
+        <button id="btnImport" class="w-full flex items-center gap-2 text-sm text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-3 py-2.5 rounded-lg transition-colors">
+          <i data-lucide="upload" class="w-4 h-4 pointer-events-none"></i> Importa JSON
+        </button>
+        <input type="file" id="fileImport" accept="application/json" class="hidden">
+        <div class="pt-3 mt-3 border-t border-[var(--border-hairline)]">
+          <button id="btnResetData" class="w-full flex items-center gap-2 text-sm text-[var(--bad)] hover:text-white hover:bg-[var(--bad)] bg-[var(--input-bg)] border border-[var(--border-hairline)] px-3 py-2.5 rounded-lg transition-colors">
+            <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i> Elimina tutti i dati
+          </button>
+        </div>
+      </div>
+
+      <div data-panel="preferenze" class="settings-panel hidden space-y-4">
+        <label class="flex items-center gap-2 text-sm text-[var(--ink-secondary)]">
+          <input type="checkbox" id="setConfirmDelete" class="w-4 h-4">
+          Conferma prima di eliminare una sessione
+        </label>
+        <label class="flex items-center gap-2 text-sm text-[var(--ink-secondary)]">
+          <input type="checkbox" id="setBackupReminderEnabled" class="w-4 h-4">
+          Promemoria di backup periodico
+        </label>
+        <div>
+          <label class="block text-xs text-[var(--ink-muted)] mb-1">Ricordami dopo (giorni)</label>
+          <input type="number" id="setBackupDays" min="1" step="1"
+            class="w-full bg-[var(--input-bg)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-2 text-sm text-[var(--ink-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-ring)]">
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
   const STORAGE_KEY = 'bettracker_sessions';
+  const SETTINGS_KEY = 'bettracker_settings';
+  const TABLE_PREFS_KEY = 'bettracker_table_prefs';
   const PLATFORM_SUGGESTIONS = ['Bet365', 'PokerStars', 'Snai', 'Betway', 'Sisal', 'Eurobet', 'William Hill', 'GGPoker'];
   const GAMETYPE_SUGGESTIONS = ['Sport Betting', 'Poker', 'Casinò', 'Slot', 'Altro'];
+  const DEFAULT_SETTINGS = {
+    theme: 'dark',
+    accent: 'indigo',
+    monthlyBudget: null,
+    budgetAlertEnabled: true,
+    confirmDelete: true,
+    backupReminderEnabled: true,
+    backupReminderDays: 14,
+  };
 
   let sessions = loadSessions();
+  let settings = loadSettings();
+  let groupBy = localStorage.getItem('bettracker_group_by') === 'gameType' ? 'gameType' : 'platform';
 
   function loadSessions() {
     try {
@@ -226,6 +457,56 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
   }
 
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function loadTablePrefs() {
+    try {
+      const raw = localStorage.getItem(TABLE_PREFS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveTablePrefs() {
+    localStorage.setItem(TABLE_PREFS_KEY, JSON.stringify({
+      platform: document.getElementById('filterPlatform').value,
+      gameType: document.getElementById('filterGameType').value,
+      sort: document.getElementById('sortOrder').value,
+    }));
+  }
+
+  function applySettings() {
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    document.documentElement.setAttribute('data-accent', settings.accent);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', settings.theme === 'light' ? '#fafafa' : '#09090b');
+
+    document.querySelectorAll('.theme-choice-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.themeChoice === settings.theme);
+    });
+    document.querySelectorAll('.accent-choice-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.accentChoice === settings.accent);
+    });
+    document.getElementById('setBudget').value = settings.monthlyBudget ?? '';
+    document.getElementById('setBudgetAlertEnabled').checked = settings.budgetAlertEnabled;
+    document.getElementById('setConfirmDelete').checked = settings.confirmDelete;
+    document.getElementById('setBackupReminderEnabled').checked = settings.backupReminderEnabled;
+    document.getElementById('setBackupDays').value = settings.backupReminderDays;
+  }
+
   function formatCurrency(n) {
     return '€' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -236,7 +517,22 @@
     const roi = totalDeposit > 0 ? (totalProfit / totalDeposit) * 100 : 0;
     const wins = list.filter(r => r.profit > 0).length;
     const winRate = list.length > 0 ? (wins / list.length) * 100 : 0;
-    return { totalProfit, roi, totalDeposit, winRate };
+
+    const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    let streakCount = 0, streakType = 'none';
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      const sign = sorted[i].profit > 0 ? 'win' : sorted[i].profit < 0 ? 'loss' : 'push';
+      if (sign === 'push') break;
+      if (streakType === 'none') { streakType = sign; streakCount = 1; }
+      else if (sign === streakType) streakCount++;
+      else break;
+    }
+
+    return { totalProfit, roi, totalDeposit, winRate, streakCount, streakType };
+  }
+
+  function computeMonthlyDeposit(list, yyyymm) {
+    return list.filter(r => r.date.startsWith(yyyymm)).reduce((s, r) => s + r.deposit, 0);
   }
 
   function applyFiltersAndSort(list, { platform, gameType, sort }) {
@@ -261,14 +557,26 @@
     const k = computeKPIs(sessions);
     const profitEl = document.getElementById('kpiProfit');
     profitEl.textContent = formatCurrency(k.totalProfit);
-    profitEl.className = 'text-2xl font-bold ' + (k.totalProfit > 0 ? 'text-emerald-400' : k.totalProfit < 0 ? 'text-rose-500' : 'text-zinc-100');
+    profitEl.className = 'text-2xl font-bold ' + (k.totalProfit > 0 ? 'text-[var(--good)]' : k.totalProfit < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-primary)]');
 
     const roiEl = document.getElementById('kpiRoi');
     roiEl.textContent = k.roi.toFixed(2) + '%';
-    roiEl.className = 'text-2xl font-bold ' + (k.roi > 0 ? 'text-emerald-400' : k.roi < 0 ? 'text-rose-500' : 'text-zinc-100');
+    roiEl.className = 'text-2xl font-bold ' + (k.roi > 0 ? 'text-[var(--good)]' : k.roi < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-primary)]');
 
     document.getElementById('kpiVolume').textContent = formatCurrency(k.totalDeposit);
     document.getElementById('kpiWinrate').textContent = k.winRate.toFixed(2) + '%';
+
+    const streakEl = document.getElementById('kpiStreak');
+    if (k.streakType === 'none') {
+      streakEl.textContent = '—';
+      streakEl.className = 'text-2xl font-bold text-[var(--ink-primary)]';
+    } else {
+      const label = k.streakType === 'win' ? (k.streakCount === 1 ? 'vittoria' : 'vittorie') : (k.streakCount === 1 ? 'perdita' : 'perdite');
+      streakEl.textContent = `${k.streakCount} ${label}`;
+      streakEl.className = 'text-2xl font-bold ' + (k.streakType === 'win' ? 'text-[var(--good)]' : 'text-[var(--bad)]');
+    }
+
+    renderBudgetBanner();
   }
 
   function renderFilterOptions() {
@@ -305,6 +613,7 @@
       gameType: document.getElementById('filterGameType').value,
       sort: document.getElementById('sortOrder').value,
     };
+    saveTablePrefs();
     const list = applyFiltersAndSort(sessions, filters);
     const tbody = document.getElementById('sessionsTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -315,16 +624,16 @@
     } else {
       emptyState.classList.add('hidden');
       tbody.innerHTML = list.map(r => `
-        <tr class="hover:bg-white/[0.02] transition-colors">
-          <td class="px-4 py-3 text-zinc-400">${formatDate(r.date)}</td>
-          <td class="px-4 py-3 text-zinc-200 font-medium">${escapeHtml(r.platform)}</td>
-          <td class="px-4 py-3 text-zinc-400">${escapeHtml(r.gameType)}</td>
-          <td class="px-4 py-3 text-right text-zinc-300">${formatCurrency(r.deposit)}</td>
-          <td class="px-4 py-3 text-right text-zinc-300">${formatCurrency(r.cashout)}</td>
-          <td class="px-4 py-3 text-right font-semibold ${r.profit > 0 ? 'text-emerald-400' : r.profit < 0 ? 'text-rose-500' : 'text-zinc-300'}">${formatCurrency(r.profit)}</td>
-          <td class="px-4 py-3 text-zinc-500 max-w-[200px] truncate" title="${escapeHtml(r.notes || '')}">${escapeHtml(r.notes || '—')}</td>
+        <tr class="hover:bg-[var(--row-hover)] transition-colors">
+          <td class="px-4 py-3 text-[var(--ink-secondary)]">${formatDate(r.date)}</td>
+          <td class="px-4 py-3 text-[var(--ink-primary)] font-medium">${escapeHtml(r.platform)}</td>
+          <td class="px-4 py-3 text-[var(--ink-secondary)]">${escapeHtml(r.gameType)}</td>
+          <td class="px-4 py-3 text-right text-[var(--ink-secondary)]">${formatCurrency(r.deposit)}</td>
+          <td class="px-4 py-3 text-right text-[var(--ink-secondary)]">${formatCurrency(r.cashout)}</td>
+          <td class="px-4 py-3 text-right font-semibold ${r.profit > 0 ? 'text-[var(--good)]' : r.profit < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-secondary)]'}">${formatCurrency(r.profit)}</td>
+          <td class="px-4 py-3 text-[var(--ink-muted)] max-w-[200px] truncate" title="${escapeHtml(r.notes || '')}">${escapeHtml(r.notes || '—')}</td>
           <td class="px-4 py-3 text-center">
-            <button data-id="${r.id}" class="btnDelete text-zinc-600 hover:text-rose-500 transition-colors p-1">
+            <button data-id="${r.id}" class="btnDelete text-[var(--ink-faint)] hover:text-[var(--bad)] transition-colors p-1">
               <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
             </button>
           </td>
@@ -344,11 +653,12 @@
     renderFilterOptions();
     renderTable();
     renderProfitChart();
-    renderPlatformChart();
+    renderGroupChart();
+    renderHeatmap();
   }
 
   function chartEmptyState(container, message) {
-    container.innerHTML = `<div class="h-48 flex items-center justify-center text-xs text-zinc-600">${escapeHtml(message)}</div>`;
+    container.innerHTML = `<div class="h-48 flex items-center justify-center text-xs text-[var(--ink-faint)]">${escapeHtml(message)}</div>`;
   }
 
   function renderProfitChart() {
@@ -381,26 +691,26 @@
     const areaPath = `${linePath} L ${x(points.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${x(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
 
     const last = points[points.length - 1];
-    const lastColor = last.cumulative >= 0 ? '#34d399' : '#f43f5e';
+    const lastColor = last.cumulative >= 0 ? 'var(--good)' : 'var(--bad)';
 
     const hitAreas = points.map((p, i) => `<rect data-i="${i}" x="${(x(i) - (plotW / points.length) / 2).toFixed(1)}" y="0" width="${(plotW / points.length).toFixed(1)}" height="${H}" fill="transparent" />`).join('');
 
     container.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none" style="max-height:220px">
-        <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W - padR}" y2="${zeroY.toFixed(1)}" stroke="#3f3f46" stroke-width="1" />
-        <path d="${areaPath}" fill="#6366f1" fill-opacity="0.1" stroke="none" />
-        <path d="${linePath}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-        <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last.cumulative).toFixed(1)}" r="4" fill="${lastColor}" stroke="#18181b" stroke-width="2" />
+        <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W - padR}" y2="${zeroY.toFixed(1)}" stroke="var(--border-hairline)" stroke-width="1" />
+        <path d="${areaPath}" fill="var(--accent-ink)" fill-opacity="0.1" stroke="none" />
+        <path d="${linePath}" fill="none" stroke="var(--accent-ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+        <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last.cumulative).toFixed(1)}" r="4" fill="${lastColor}" stroke="var(--surface-card)" stroke-width="2" />
         <text x="${(x(points.length - 1) - 6).toFixed(1)}" y="${(y(last.cumulative) - 10).toFixed(1)}" text-anchor="end" font-size="11" fill="${lastColor}" font-weight="600">${formatCurrency(last.cumulative)}</text>
-        <text x="${padL}" y="${H - 8}" font-size="10" fill="#71717a">${escapeHtml(points[0].date)}</text>
-        <text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="10" fill="#71717a">${escapeHtml(last.date)}</text>
+        <text x="${padL}" y="${H - 8}" font-size="10" fill="var(--ink-muted)">${escapeHtml(points[0].date)}</text>
+        <text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="10" fill="var(--ink-muted)">${escapeHtml(last.date)}</text>
         <g id="profitCrosshair" class="pointer-events-none" style="display:none">
-          <line x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="#52525b" stroke-width="1" />
-          <circle r="4" fill="#a5b4fc" stroke="#18181b" stroke-width="2" />
+          <line x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--ink-faint)" stroke-width="1" />
+          <circle r="4" fill="var(--accent-ink)" stroke="var(--surface-card)" stroke-width="2" />
         </g>
         ${hitAreas}
       </svg>
-      <div id="profitTooltip" class="hidden absolute pointer-events-none bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+      <div id="profitTooltip" class="hidden absolute pointer-events-none bg-[var(--surface-page)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
     `;
 
     const svg = container.querySelector('svg');
@@ -423,9 +733,9 @@
         tooltip.style.top = '0px';
         tooltip.style.transform = pctLeft > 70 ? 'translate(-100%, 0)' : 'translate(0, 0)';
         tooltip.innerHTML = `
-          <div class="text-zinc-400">${escapeHtml(p.date)}</div>
-          <div class="font-semibold ${p.cumulative >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${formatCurrency(p.cumulative)} <span class="text-zinc-500 font-normal">cumulato</span></div>
-          <div class="${p.profit >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${p.profit >= 0 ? '+' : ''}${formatCurrency(p.profit)} <span class="text-zinc-500">questa sessione</span></div>
+          <div class="text-[var(--ink-muted)]">${escapeHtml(p.date)}</div>
+          <div class="font-semibold ${p.cumulative >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}">${formatCurrency(p.cumulative)} <span class="text-[var(--ink-muted)] font-normal">cumulato</span></div>
+          <div class="${p.profit >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}">${p.profit >= 0 ? '+' : ''}${formatCurrency(p.profit)} <span class="text-[var(--ink-muted)]">questa sessione</span></div>
         `;
         tooltip.classList.remove('hidden');
       });
@@ -436,22 +746,36 @@
     });
   }
 
-  function renderPlatformChart() {
+  function renderGroupChart() {
+    const titleEl = document.getElementById('groupChartTitle');
+    const subtitleEl = document.getElementById('groupChartSubtitle');
+    document.querySelectorAll('.group-toggle-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.group === groupBy);
+    });
+    if (groupBy === 'gameType') {
+      titleEl.textContent = 'Per Tipo di Gioco';
+      subtitleEl.textContent = 'Profitto totale per tipo di gioco';
+    } else {
+      titleEl.textContent = 'Per Piattaforma';
+      subtitleEl.textContent = 'Profitto totale per piattaforma';
+    }
+
     const container = document.getElementById('platformChart');
     if (sessions.length === 0) {
       chartEmptyState(container, 'Nessuna sessione ancora registrata');
       return;
     }
 
-    const byPlatform = new Map();
+    const byGroup = new Map();
     for (const s of sessions) {
-      const cur = byPlatform.get(s.platform) || { profit: 0, count: 0 };
+      const key = s[groupBy] || '—';
+      const cur = byGroup.get(key) || { profit: 0, count: 0 };
       cur.profit += s.profit;
       cur.count += 1;
-      byPlatform.set(s.platform, cur);
+      byGroup.set(key, cur);
     }
-    const rows = [...byPlatform.entries()]
-      .map(([platform, v]) => ({ platform, ...v }))
+    const rows = [...byGroup.entries()]
+      .map(([label, v]) => ({ label, ...v }))
       .sort((a, b) => b.profit - a.profit);
 
     const W = 280, rowH = 34, padL = 8, padR = 8, padT = 4, labelGutter = 46;
@@ -462,7 +786,7 @@
     const barsHtml = rows.map((r, i) => {
       const cyTop = padT + i * rowH;
       const barW = (Math.abs(r.profit) / maxAbs) * barMax;
-      const color = r.profit >= 0 ? '#34d399' : '#f43f5e';
+      const color = r.profit >= 0 ? 'var(--good)' : 'var(--bad)';
       const barX = r.profit >= 0 ? W / 2 : W / 2 - barW;
       const valueText = formatCurrency(r.profit);
       const fitsOutside = labelGutter - 6 >= valueText.length * 5.4;
@@ -473,7 +797,7 @@
         : '';
       return `
         <g data-i="${i}" class="platform-row" style="cursor:pointer">
-          <text x="${W / 2}" y="${cyTop + 13}" text-anchor="middle" font-size="10" fill="#a1a1aa">${escapeHtml(r.platform)}</text>
+          <text x="${W / 2}" y="${cyTop + 13}" text-anchor="middle" font-size="10" fill="var(--ink-secondary)">${escapeHtml(r.label)}</text>
           <rect x="${barX.toFixed(1)}" y="${(cyTop + 16).toFixed(1)}" width="${Math.max(barW, 2).toFixed(1)}" height="10" rx="3" fill="${color}" />
           ${label}
           <rect x="0" y="${cyTop}" width="${W}" height="${rowH}" fill="transparent" />
@@ -483,10 +807,10 @@
 
     container.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none">
-        <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#3f3f46" stroke-width="1" />
+        <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="var(--border-hairline)" stroke-width="1" />
         ${barsHtml}
       </svg>
-      <div id="platformTooltip" class="hidden absolute pointer-events-none bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+      <div id="platformTooltip" class="hidden absolute pointer-events-none bg-[var(--surface-page)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
     `;
 
     const svg = container.querySelector('svg');
@@ -501,9 +825,9 @@
         tooltip.style.left = `${Math.min(relX + 10, rect.width - 140)}px`;
         tooltip.style.top = `${relY}px`;
         tooltip.innerHTML = `
-          <div class="text-zinc-400">${escapeHtml(r.platform)}</div>
-          <div class="font-semibold ${r.profit >= 0 ? 'text-emerald-400' : 'text-rose-500'}">${formatCurrency(r.profit)}</div>
-          <div class="text-zinc-500">${r.count} session${r.count === 1 ? 'e' : 'i'}</div>
+          <div class="text-[var(--ink-muted)]">${escapeHtml(r.label)}</div>
+          <div class="font-semibold ${r.profit >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}">${formatCurrency(r.profit)}</div>
+          <div class="text-[var(--ink-muted)]">${r.count} session${r.count === 1 ? 'e' : 'i'}</div>
         `;
         tooltip.classList.remove('hidden');
       });
@@ -511,19 +835,152 @@
     });
   }
 
+  function renderHeatmap() {
+    const container = document.getElementById('heatmapChart');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rangeStart = new Date(today);
+    rangeStart.setDate(rangeStart.getDate() - 89);
+
+    const daysInRange = [];
+    for (let d = new Date(rangeStart); d <= today; d.setDate(d.getDate() + 1)) {
+      daysInRange.push(new Date(d));
+    }
+
+    const byDate = new Map();
+    for (const s of sessions) {
+      const cur = byDate.get(s.date) || { profit: 0, count: 0 };
+      cur.profit += s.profit;
+      cur.count += 1;
+      byDate.set(s.date, cur);
+    }
+
+    const activeDays = daysInRange.filter((d) => byDate.has(toISO(d)));
+    if (activeDays.length === 0) {
+      chartEmptyState(container, 'Nessuna sessione negli ultimi 90 giorni');
+      return;
+    }
+
+    const maxAbs = Math.max(1, ...activeDays.map((d) => Math.abs(byDate.get(toISO(d)).profit)));
+
+    const gridStart = new Date(rangeStart);
+    const dow = (gridStart.getDay() + 6) % 7; // 0 = Monday
+    gridStart.setDate(gridStart.getDate() - dow);
+
+    const cells = [];
+    for (let d = new Date(gridStart); d <= today; d.setDate(d.getDate() + 1)) {
+      cells.push(new Date(d));
+    }
+    const weeks = Math.ceil(cells.length / 7);
+
+    const cellSize = 12, gap = 3, step = cellSize + gap;
+    const topGutter = 14, leftGutter = 0;
+    const W = leftGutter + weeks * step;
+    const H = topGutter + 7 * step;
+
+    const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    let lastMonth = -1;
+    const monthLabels = [];
+
+    let cellsHtml = '';
+    cells.forEach((d, idx) => {
+      const week = Math.floor(idx / 7);
+      const row = idx % 7;
+      const cx = leftGutter + week * step;
+      const cy = topGutter + row * step;
+      if (row === 0 && d.getMonth() !== lastMonth && d >= rangeStart) {
+        lastMonth = d.getMonth();
+        monthLabels.push(`<text x="${cx}" y="${topGutter - 4}" font-size="9" fill="var(--ink-muted)">${monthNames[lastMonth]}</text>`);
+      }
+      if (d < rangeStart || d > today) {
+        cellsHtml += `<rect x="${cx}" y="${cy}" width="${cellSize}" height="${cellSize}" rx="2" fill="none" />`;
+        return;
+      }
+      const iso = toISO(d);
+      const info = byDate.get(iso);
+      let fill, opacity = 1;
+      if (!info) {
+        fill = 'var(--border-hairline)';
+      } else if (info.profit === 0) {
+        fill = 'var(--ink-faint)';
+        opacity = 0.5;
+      } else if (info.profit > 0) {
+        fill = 'var(--good)';
+        opacity = 0.25 + 0.75 * (Math.abs(info.profit) / maxAbs);
+      } else {
+        fill = 'var(--bad)';
+        opacity = 0.25 + 0.75 * (Math.abs(info.profit) / maxAbs);
+      }
+      cellsHtml += `<rect data-date="${iso}" x="${cx}" y="${cy}" width="${cellSize}" height="${cellSize}" rx="2" fill="${fill}" fill-opacity="${opacity.toFixed(2)}" style="cursor:pointer" />`;
+    });
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="select-none" style="min-width:${W}px">
+        ${monthLabels.join('')}
+        ${cellsHtml}
+      </svg>
+      <div class="flex items-center gap-2 mt-2 text-[10px] text-[var(--ink-muted)]">
+        <span>Perdita</span>
+        <span class="inline-block w-3 h-3 rounded-sm" style="background:var(--bad);opacity:1"></span>
+        <span class="inline-block w-3 h-3 rounded-sm" style="background:var(--bad);opacity:0.4"></span>
+        <span class="inline-block w-3 h-3 rounded-sm" style="background:var(--border-hairline)"></span>
+        <span class="inline-block w-3 h-3 rounded-sm" style="background:var(--good);opacity:0.4"></span>
+        <span class="inline-block w-3 h-3 rounded-sm" style="background:var(--good);opacity:1"></span>
+        <span>Profitto</span>
+      </div>
+      <div id="heatmapTooltip" class="hidden absolute pointer-events-none bg-[var(--surface-page)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+    `;
+
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('#heatmapTooltip');
+    svg.querySelectorAll('rect[data-date]').forEach((rect) => {
+      rect.addEventListener('pointermove', (e) => {
+        const iso = rect.dataset.date;
+        const info = byDate.get(iso);
+        const containerRect = container.getBoundingClientRect();
+        const relX = e.clientX - containerRect.left;
+        const relY = e.clientY - containerRect.top;
+        tooltip.style.left = `${Math.min(relX + 10, containerRect.width - 140)}px`;
+        tooltip.style.top = `${Math.max(relY - 50, 0)}px`;
+        if (info) {
+          tooltip.innerHTML = `
+            <div class="text-[var(--ink-muted)]">${formatDate(iso)}</div>
+            <div class="font-semibold ${info.profit >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}">${formatCurrency(info.profit)}</div>
+            <div class="text-[var(--ink-muted)]">${info.count} session${info.count === 1 ? 'e' : 'i'}</div>
+          `;
+        } else {
+          tooltip.innerHTML = `<div class="text-[var(--ink-muted)]">${formatDate(iso)}</div><div class="text-[var(--ink-muted)]">Nessuna sessione</div>`;
+        }
+        tooltip.classList.remove('hidden');
+      });
+      rect.addEventListener('pointerleave', () => tooltip.classList.add('hidden'));
+    });
+  }
+
+  function toISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   document.getElementById('sessionsTableBody').addEventListener('click', (e) => {
     const btn = e.target.closest('.btnDelete');
     if (!btn) return;
-    if (confirm('Eliminare questa sessione?')) {
-      sessions = sessions.filter(r => r.id !== btn.dataset.id);
-      saveSessions();
-      renderAll();
-    }
+    if (settings.confirmDelete && !confirm('Eliminare questa sessione?')) return;
+    sessions = sessions.filter(r => r.id !== btn.dataset.id);
+    saveSessions();
+    renderAll();
   });
 
   document.getElementById('filterPlatform').addEventListener('change', renderTable);
   document.getElementById('filterGameType').addEventListener('change', renderTable);
   document.getElementById('sortOrder').addEventListener('change', renderTable);
+
+  document.querySelectorAll('.group-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      groupBy = btn.dataset.group;
+      localStorage.setItem('bettracker_group_by', groupBy);
+      renderGroupChart();
+    });
+  });
 
   function updatePreview() {
     const deposit = parseFloat(document.getElementById('fDeposit').value) || 0;
@@ -531,7 +988,7 @@
     const profit = cashout - deposit;
     const el = document.getElementById('previewProfit');
     el.textContent = formatCurrency(profit);
-    el.className = 'text-lg font-bold ' + (profit > 0 ? 'text-emerald-400' : profit < 0 ? 'text-rose-500' : 'text-zinc-400');
+    el.className = 'text-lg font-bold ' + (profit > 0 ? 'text-[var(--good)]' : profit < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-secondary)]');
   }
   document.getElementById('fDeposit').addEventListener('input', updatePreview);
   document.getElementById('fCashout').addEventListener('input', updatePreview);
@@ -566,7 +1023,15 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  document.getElementById('btnExport').addEventListener('click', () => {
+  function csvEscape(field) {
+    const str = String(field ?? '');
+    if (/[",\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  }
+
+  function exportJSON() {
     const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -574,7 +1039,28 @@
     a.download = `bet-tracker-export-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  });
+    markBackupDone();
+  }
+
+  function exportCSV() {
+    const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+    const header = ['Data', 'Piattaforma', 'Tipo di gioco', 'Deposito', 'Cashout', 'Profitto', 'Note'];
+    const lines = [header.join(',')];
+    for (const r of sorted) {
+      lines.push([r.date, csvEscape(r.platform), csvEscape(r.gameType), r.deposit, r.cashout, r.profit, csvEscape(r.notes)].join(','));
+    }
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bet-tracker-export-${todayISO()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    markBackupDone();
+  }
+
+  document.getElementById('btnExport').addEventListener('click', exportJSON);
+  document.getElementById('btnExportCsv').addEventListener('click', exportCSV);
 
   document.getElementById('btnImport').addEventListener('click', () => {
     document.getElementById('fileImport').click();
@@ -612,9 +1098,167 @@
     reader.readAsText(file);
   });
 
+  document.getElementById('btnResetData').addEventListener('click', () => {
+    if (sessions.length === 0) return;
+    if (confirm('Questa azione è irreversibile ed eliminerà TUTTE le sessioni registrate. Continuare?')) {
+      sessions = [];
+      saveSessions();
+      renderAll();
+    }
+  });
+
+  // Settings modal
+  function openSettingsModal(tab) {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setActiveSettingsTab(tab || 'aspetto');
+  }
+  function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  function setActiveSettingsTab(tab) {
+    document.querySelectorAll('.settings-tab').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tab));
+    document.querySelectorAll('.settings-panel').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== tab));
+  }
+
+  document.getElementById('btnSettings').addEventListener('click', () => openSettingsModal('aspetto'));
+  document.getElementById('btnSettingsClose').addEventListener('click', closeSettingsModal);
+  document.getElementById('settingsBackdrop').addEventListener('click', closeSettingsModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('settingsModal').classList.contains('hidden')) closeSettingsModal();
+  });
+  document.querySelectorAll('.settings-tab').forEach((btn) => {
+    btn.addEventListener('click', () => setActiveSettingsTab(btn.dataset.tab));
+  });
+
+  document.querySelectorAll('.theme-choice-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      settings.theme = btn.dataset.themeChoice;
+      saveSettings();
+      applySettings();
+      renderAll();
+    });
+  });
+  document.querySelectorAll('.accent-choice-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      settings.accent = btn.dataset.accentChoice;
+      saveSettings();
+      applySettings();
+      renderAll();
+    });
+  });
+  document.getElementById('setBudget').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    settings.monthlyBudget = isNaN(v) || v <= 0 ? null : v;
+    saveSettings();
+    renderBudgetBanner();
+  });
+  document.getElementById('setBudgetAlertEnabled').addEventListener('change', (e) => {
+    settings.budgetAlertEnabled = e.target.checked;
+    saveSettings();
+    renderBudgetBanner();
+  });
+  document.getElementById('setConfirmDelete').addEventListener('change', (e) => {
+    settings.confirmDelete = e.target.checked;
+    saveSettings();
+  });
+  document.getElementById('setBackupReminderEnabled').addEventListener('change', (e) => {
+    settings.backupReminderEnabled = e.target.checked;
+    saveSettings();
+    checkBackupReminder();
+  });
+  document.getElementById('setBackupDays').addEventListener('input', (e) => {
+    const v = parseInt(e.target.value, 10);
+    settings.backupReminderDays = isNaN(v) || v < 1 ? 14 : v;
+    saveSettings();
+    checkBackupReminder();
+  });
+
+  // Budget banner
+  function renderBudgetBanner() {
+    const banner = document.getElementById('budgetBanner');
+    const yyyymm = todayISO().slice(0, 7);
+    if (!settings.budgetAlertEnabled || !settings.monthlyBudget) {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+      return;
+    }
+    const spent = computeMonthlyDeposit(sessions, yyyymm);
+    const dismissedMonth = localStorage.getItem('bettracker_budget_dismissed');
+    if (spent < settings.monthlyBudget || dismissedMonth === yyyymm) {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+      return;
+    }
+    document.getElementById('budgetBannerText').textContent =
+      `Hai raggiunto il budget mensile: depositato ${formatCurrency(spent)} su ${formatCurrency(settings.monthlyBudget)}.`;
+    banner.classList.remove('hidden');
+    banner.classList.add('flex');
+  }
+  document.getElementById('budgetBannerSettings').addEventListener('click', () => openSettingsModal('obiettivi'));
+  document.getElementById('budgetBannerDismiss').addEventListener('click', () => {
+    localStorage.setItem('bettracker_budget_dismissed', todayISO().slice(0, 7));
+    const banner = document.getElementById('budgetBanner');
+    banner.classList.add('hidden');
+    banner.classList.remove('flex');
+  });
+
+  // Backup reminder
+  function markBackupDone() {
+    localStorage.setItem('bettracker_last_export_at', String(Date.now()));
+    const banner = document.getElementById('backupBanner');
+    banner.classList.add('hidden');
+    banner.classList.remove('flex');
+  }
+  function checkBackupReminder() {
+    const banner = document.getElementById('backupBanner');
+    if (!settings.backupReminderEnabled || sessions.length === 0) {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+      return;
+    }
+    if (!localStorage.getItem('bettracker_first_use_at')) {
+      localStorage.setItem('bettracker_first_use_at', String(Date.now()));
+    }
+    const lastExport = Number(localStorage.getItem('bettracker_last_export_at') || 0);
+    const firstUse = Number(localStorage.getItem('bettracker_first_use_at') || Date.now());
+    const baseline = lastExport || firstUse;
+    const daysSince = (Date.now() - baseline) / (24 * 60 * 60 * 1000);
+    const dismissedAt = Number(localStorage.getItem('bettracker_backup_reminder_dismissed_at') || 0);
+    const daysSinceDismiss = (Date.now() - dismissedAt) / (24 * 60 * 60 * 1000);
+
+    if (daysSince >= settings.backupReminderDays && daysSinceDismiss >= settings.backupReminderDays) {
+      document.getElementById('backupBannerText').textContent =
+        `Non esporti un backup da ${Math.floor(daysSince)} giorni. Vuoi farlo ora?`;
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+    } else {
+      banner.classList.add('hidden');
+      banner.classList.remove('flex');
+    }
+  }
+  document.getElementById('backupBannerExport').addEventListener('click', exportJSON);
+  document.getElementById('backupBannerDismiss').addEventListener('click', () => {
+    localStorage.setItem('bettracker_backup_reminder_dismissed_at', String(Date.now()));
+    const banner = document.getElementById('backupBanner');
+    banner.classList.add('hidden');
+    banner.classList.remove('flex');
+  });
+
+  // Init
+  applySettings();
+  const tablePrefs = loadTablePrefs();
+  if (tablePrefs.platform) document.getElementById('filterPlatform').value = tablePrefs.platform;
+  if (tablePrefs.gameType) document.getElementById('filterGameType').value = tablePrefs.gameType;
+  if (tablePrefs.sort) document.getElementById('sortOrder').value = tablePrefs.sort;
+
   document.getElementById('fDate').value = todayISO();
   renderAll();
   checkForUpdates();
+  checkBackupReminder();
 
   function compareVersions(a, b) {
     for (let i = 0; i < 3; i++) {
