@@ -4,6 +4,8 @@
 
 App per tracciare le proprie sessioni di scommesse e gioco: dashboard con KPI, storico sessioni filtrabile, tutto salvato in locale. Disponibile come app desktop standalone (Windows e macOS) o come pagina web.
 
+![Screenshot Bet Tracker](docs/screenshot.png)
+
 ## Download
 
 | Piattaforma | Release |
