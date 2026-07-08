@@ -233,17 +233,31 @@
         <div id="heatmapStats" class="flex flex-wrap gap-x-8 gap-y-3 sm:pl-5 sm:border-l border-[var(--divide-hairline)]"></div>
       </div>
     </div>
+
+    <!-- Weekday chart -->
+    <div class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-[var(--ink-primary)] mb-0.5 flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 text-[var(--accent-ink)]"></i> Per Giorno della Settimana
+      </h2>
+      <p class="text-xs text-[var(--ink-muted)] mb-3">Profitto medio (ultimi 90 giorni)</p>
+      <div id="weekdayChart" class="relative"></div>
+    </div>
   </section>
 
   <!-- Form -->
   <section class="bg-[var(--surface-card)] border border-[var(--border-hairline)] rounded-xl p-5 shadow-lg shadow-black/20 mb-8">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-sm font-semibold text-[var(--ink-primary)] flex items-center gap-2">
-        <i data-lucide="plus-circle" class="w-4 h-4 text-[var(--accent-ink)]"></i> Nuova Sessione
+        <i data-lucide="plus-circle" class="w-4 h-4 text-[var(--accent-ink)]"></i> <span id="sessionFormTitle">Nuova Sessione</span>
       </h2>
-      <button id="btnSmartAdd" type="button" class="flex items-center gap-1.5 text-xs text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-2.5 py-1.5 rounded-lg transition-colors">
-        <i data-lucide="wand-sparkles" class="w-3.5 h-3.5 pointer-events-none"></i> Aggiungi da testo
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="btnCancelEdit" type="button" class="hidden items-center gap-1.5 text-xs text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-2.5 py-1.5 rounded-lg transition-colors">
+          <i data-lucide="x" class="w-3.5 h-3.5 pointer-events-none"></i> Annulla modifica
+        </button>
+        <button id="btnSmartAdd" type="button" class="flex items-center gap-1.5 text-xs text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--input-bg)] hover:bg-[var(--row-hover)] border border-[var(--border-hairline)] px-2.5 py-1.5 rounded-lg transition-colors">
+          <i data-lucide="wand-sparkles" class="w-3.5 h-3.5 pointer-events-none"></i> Aggiungi da testo
+        </button>
+      </div>
     </div>
     <form id="sessionForm" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
       <div class="col-span-1">
@@ -275,7 +289,7 @@
       </div>
       <div class="col-span-1">
         <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-[var(--accent-solid)] hover:bg-[var(--accent-solid-hover)] text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-          <i data-lucide="plus" class="w-4 h-4 pointer-events-none"></i> Aggiungi
+          <i data-lucide="plus" class="w-4 h-4 pointer-events-none"></i> <span id="btnSubmitLabel">Aggiungi</span>
         </button>
       </div>
       <div class="col-span-2 sm:col-span-3 lg:col-span-5">
@@ -479,6 +493,7 @@
   let sessions = loadSessions();
   let settings = loadSettings();
   let groupBy = localStorage.getItem('bettracker_group_by') === 'gameType' ? 'gameType' : 'platform';
+  let editingId = null;
 
   function loadSessions() {
     try {
@@ -661,7 +676,7 @@
     } else {
       emptyState.classList.add('hidden');
       tbody.innerHTML = list.map(r => `
-        <tr class="hover:bg-[var(--row-hover)] transition-colors">
+        <tr class="hover:bg-[var(--row-hover)] transition-colors ${r.id === editingId ? 'bg-[var(--accent-soft-bg)]' : ''}">
           <td class="px-4 py-3 text-[var(--ink-secondary)]">${formatDate(r.date)}</td>
           <td class="px-4 py-3 text-[var(--ink-primary)] font-medium">${escapeHtml(r.platform)}</td>
           <td class="px-4 py-3 text-[var(--ink-secondary)]">${escapeHtml(r.gameType)}</td>
@@ -670,9 +685,14 @@
           <td class="px-4 py-3 text-right font-semibold ${r.profit > 0 ? 'text-[var(--good)]' : r.profit < 0 ? 'text-[var(--bad)]' : 'text-[var(--ink-secondary)]'}">${formatCurrency(r.profit)}</td>
           <td class="px-4 py-3 text-[var(--ink-muted)] max-w-[200px] truncate" title="${escapeHtml(r.notes || '')}">${escapeHtml(r.notes || '—')}</td>
           <td class="px-4 py-3 text-center">
-            <button data-id="${r.id}" class="btnDelete text-[var(--ink-faint)] hover:text-[var(--bad)] transition-colors p-1">
-              <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-            </button>
+            <div class="flex items-center justify-center gap-1">
+              <button data-id="${r.id}" class="btnEdit text-[var(--ink-faint)] hover:text-[var(--accent-ink)] transition-colors p-1">
+                <i data-lucide="pencil" class="w-4 h-4 pointer-events-none"></i>
+              </button>
+              <button data-id="${r.id}" class="btnDelete text-[var(--ink-faint)] hover:text-[var(--bad)] transition-colors p-1">
+                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `).join('');
@@ -692,6 +712,7 @@
     renderProfitChart();
     renderGroupChart();
     renderHeatmap();
+    renderWeekdayChart();
   }
 
   function chartEmptyState(container, message) {
@@ -872,13 +893,11 @@
     });
   }
 
-  function renderHeatmap() {
-    const container = document.getElementById('heatmapChart');
-    const statsContainer = document.getElementById('heatmapStats');
+  function getDailyProfitMap(days) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const rangeStart = new Date(today);
-    rangeStart.setDate(rangeStart.getDate() - 89);
+    rangeStart.setDate(rangeStart.getDate() - (days - 1));
 
     const daysInRange = [];
     for (let d = new Date(rangeStart); d <= today; d.setDate(d.getDate() + 1)) {
@@ -892,6 +911,14 @@
       cur.count += 1;
       byDate.set(s.date, cur);
     }
+
+    return { today, rangeStart, daysInRange, byDate };
+  }
+
+  function renderHeatmap() {
+    const container = document.getElementById('heatmapChart');
+    const statsContainer = document.getElementById('heatmapStats');
+    const { today, rangeStart, daysInRange, byDate } = getDailyProfitMap(90);
 
     const activeDays = daysInRange.filter((d) => byDate.has(toISO(d)));
     if (activeDays.length === 0) {
@@ -1029,14 +1056,133 @@
     });
   }
 
+  function renderWeekdayChart() {
+    const container = document.getElementById('weekdayChart');
+    const { daysInRange, byDate } = getDailyProfitMap(90);
+    const activeDays = daysInRange.filter((d) => byDate.has(toISO(d)));
+    if (activeDays.length === 0) {
+      chartEmptyState(container, 'Nessuna sessione negli ultimi 90 giorni');
+      return;
+    }
+
+    const dayNames = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const buckets = Array.from({ length: 7 }, () => ({ profit: 0, count: 0 }));
+    for (const d of activeDays) {
+      const idx = (d.getDay() + 6) % 7; // 0 = Monday
+      const entry = byDate.get(toISO(d));
+      buckets[idx].profit += entry.profit;
+      buckets[idx].count += 1;
+    }
+    const rows = buckets.map((b, i) => ({
+      label: dayNames[i],
+      avg: b.count > 0 ? b.profit / b.count : 0,
+      count: b.count,
+    }));
+
+    const W = 240, H = 150, padT = 12, padB = 16, colW = W / 7;
+    const plotH = H - padT - padB;
+    const zeroY = padT + plotH / 2;
+    const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.avg)));
+    const barMaxH = plotH / 2 - 6;
+    const barW = Math.min(20, colW - 8);
+
+    const barsHtml = rows.map((r, i) => {
+      const cx = i * colW + colW / 2;
+      const h = r.count > 0 ? Math.max((Math.abs(r.avg) / maxAbs) * barMaxH, 2) : 0;
+      const color = r.avg >= 0 ? 'var(--good)' : 'var(--bad)';
+      const barY = r.avg >= 0 ? zeroY - h : zeroY;
+      const bar = h > 0
+        ? `<rect x="${(cx - barW / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${barW}" height="${h.toFixed(1)}" rx="3" fill="${color}" />`
+        : '';
+      return `
+        <g data-i="${i}" style="cursor:${r.count > 0 ? 'pointer' : 'default'}">
+          ${bar}
+          <text x="${cx.toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="9" fill="var(--ink-muted)">${r.label}</text>
+          <rect x="${(i * colW).toFixed(1)}" y="0" width="${colW.toFixed(1)}" height="${H}" fill="transparent" />
+        </g>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none" style="max-height:150px">
+        <line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="var(--border-hairline)" stroke-width="1" />
+        ${barsHtml}
+      </svg>
+      <div id="weekdayTooltip" class="hidden absolute pointer-events-none bg-[var(--surface-page)] border border-[var(--border-hairline)] rounded-lg px-2.5 py-1.5 text-xs shadow-lg z-10"></div>
+    `;
+
+    const svg = container.querySelector('svg');
+    const tooltip = container.querySelector('#weekdayTooltip');
+    svg.querySelectorAll('g[data-i]').forEach((g) => {
+      const i = Number(g.dataset.i);
+      const r = rows[i];
+      if (r.count === 0) return;
+      g.addEventListener('pointermove', (e) => {
+        const rect = container.getBoundingClientRect();
+        const relX = e.clientX - rect.left;
+        tooltip.style.left = `${Math.min(relX + 10, rect.width - 140)}px`;
+        tooltip.style.top = '0px';
+        tooltip.innerHTML = `
+          <div class="text-[var(--ink-muted)]">${r.label}</div>
+          <div class="font-semibold ${r.avg >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}">${formatCurrency(r.avg)} <span class="text-[var(--ink-muted)] font-normal">media</span></div>
+          <div class="text-[var(--ink-muted)]">${r.count} giorn${r.count === 1 ? 'o' : 'i'} attiv${r.count === 1 ? 'o' : 'i'}</div>
+        `;
+        tooltip.classList.remove('hidden');
+      });
+      g.addEventListener('pointerleave', () => tooltip.classList.add('hidden'));
+    });
+  }
+
   function toISO(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  function startEdit(id) {
+    const r = sessions.find(s => s.id === id);
+    if (!r) return;
+    editingId = id;
+    document.getElementById('fDate').value = r.date;
+    document.getElementById('fPlatform').value = r.platform;
+    document.getElementById('fGameType').value = r.gameType;
+    document.getElementById('fDeposit').value = r.deposit;
+    document.getElementById('fCashout').value = r.cashout;
+    document.getElementById('fNotes').value = r.notes || '';
+    updatePreview();
+    document.getElementById('sessionFormTitle').textContent = 'Modifica Sessione';
+    document.getElementById('btnSubmitLabel').textContent = 'Salva modifiche';
+    const cancelBtn = document.getElementById('btnCancelEdit');
+    cancelBtn.classList.remove('hidden');
+    cancelBtn.classList.add('flex');
+    renderTable();
+    document.getElementById('sessionForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('fDate').focus();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    document.getElementById('sessionForm').reset();
+    document.getElementById('fDate').value = todayISO();
+    updatePreview();
+    document.getElementById('sessionFormTitle').textContent = 'Nuova Sessione';
+    document.getElementById('btnSubmitLabel').textContent = 'Aggiungi';
+    const cancelBtn = document.getElementById('btnCancelEdit');
+    cancelBtn.classList.add('hidden');
+    cancelBtn.classList.remove('flex');
+    renderTable();
+  }
+
+  document.getElementById('btnCancelEdit').addEventListener('click', cancelEdit);
+
   document.getElementById('sessionsTableBody').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.btnEdit');
+    if (editBtn) {
+      startEdit(editBtn.dataset.id);
+      return;
+    }
     const btn = e.target.closest('.btnDelete');
     if (!btn) return;
     if (settings.confirmDelete && !confirm('Eliminare questa sessione?')) return;
+    if (btn.dataset.id === editingId) cancelEdit();
     sessions = sessions.filter(r => r.id !== btn.dataset.id);
     saveSessions();
     renderAll();
@@ -1071,8 +1217,7 @@
     const cashout = parseFloat(document.getElementById('fCashout').value);
     if (isNaN(deposit) || deposit < 0 || isNaN(cashout) || cashout < 0) return;
 
-    const record = {
-      id: crypto.randomUUID(),
+    const fields = {
       date: document.getElementById('fDate').value,
       platform: document.getElementById('fPlatform').value.trim(),
       gameType: document.getElementById('fGameType').value.trim(),
@@ -1081,14 +1226,28 @@
       profit: cashout - deposit,
       notes: document.getElementById('fNotes').value.trim(),
     };
-    sessions.push(record);
+
+    if (editingId) {
+      const idx = sessions.findIndex(r => r.id === editingId);
+      if (idx !== -1) sessions[idx] = { ...sessions[idx], ...fields };
+    } else {
+      sessions.push({ id: crypto.randomUUID(), ...fields });
+    }
     saveSessions();
-    renderAll();
+
+    editingId = null;
+    document.getElementById('sessionFormTitle').textContent = 'Nuova Sessione';
+    document.getElementById('btnSubmitLabel').textContent = 'Aggiungi';
+    const cancelBtn = document.getElementById('btnCancelEdit');
+    cancelBtn.classList.add('hidden');
+    cancelBtn.classList.remove('flex');
 
     e.target.reset();
     document.getElementById('fDate').value = todayISO();
     updatePreview();
     document.getElementById('smartAddNotice').classList.add('hidden');
+
+    renderAll();
   });
 
   function todayISO() {
@@ -1405,6 +1564,7 @@
 
   // Smart add modal
   function openSmartAddModal() {
+    if (editingId) cancelEdit();
     document.getElementById('smartAddNotice').classList.add('hidden');
     document.getElementById('smartAddInput').value = '';
     const modal = document.getElementById('smartAddModal');
